@@ -399,12 +399,12 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
         <h3 id="modalTitle">Detalle</h3>
         <div class="sub" id="modalSub"></div>
       </div>
-      <button class="modal-close" onclick="cerrarModal()">×</button>
+      <button class="modal-close" onclick="comis_cerrarModal()">×</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
       <div class="totals" id="modalTotals"></div>
-      <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+      <button class="btn btn-secondary" onclick="comis_cerrarModal()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1513,7 +1513,7 @@ let sortDir = 'desc';
 // ============ LOCALSTORAGE ============
 const STORAGE_KEY = 'if_comisiones_v1';
 function comis_guardar() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) { console.warn('No se pudo guardar', e); }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(COMIS_DATA)); } catch(e) { console.warn('No se pudo guardar', e); }
 }
 function comis_cargar() {
   try {
@@ -1653,7 +1653,7 @@ function comis_render() {
   document.getElementById('filters').style.display = 'flex';
   document.getElementById('btnExport').disabled = false;
 
-  const d = new Date(DATA.fechaCarga);
+  const d = new Date(COMIS_DATA.fechaCarga);
   document.getElementById('lastUpdate').textContent = '↻ Actualizado: ' + d.toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
 }
 
@@ -1664,7 +1664,7 @@ function comis_comis_renderEmpty() {
 function comis_comis_renderSidebar() {
   // Totales globales por moneda
   const porMoneda = new Map();
-  for (const g of RESUMEN) {
+  for (const g of COMIS_RESUMEN) {
     if (!porMoneda.has(g.moneda)) porMoneda.set(g.moneda, {ok:0, no:0, otro:0, count:0});
     const m = porMoneda.get(g.moneda);
     m.ok += g.ok_total; m.no += g.no_total; m.otro += g.otro_total;
@@ -1732,7 +1732,7 @@ function comis_comis_renderTabla() {
 
   const hdr = (key, label, extra='') => {
     const cls = sortBy === key ? (sortDir==='asc'?'sorted-asc':'sorted-desc') : '';
-    return `<th class="${extra} ${cls}" onclick="cambiarSort('${key}')">${label}</th>`;
+    return `<th class="${extra} ${cls}" onclick="comis_sortBy('${key}')">${label}</th>`;
   };
 
   let html = `<div class="table-wrap"><table>
@@ -1784,7 +1784,7 @@ function comis_comis_renderTabla() {
   document.getElementById('content').innerHTML = html;
 }
 
-function cambiarSort(col) {
+function comis_sortBy(col) {
   if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortBy = col; sortDir = (col === 'comisionista' || col === 'moneda') ? 'asc' : 'desc'; }
   comis_renderTabla();
@@ -1792,7 +1792,7 @@ function cambiarSort(col) {
 
 // ============ MODAL ============
 function comis_comis_abrirModal(idx) {
-  const g = RESUMEN[idx];
+  const g = COMIS_RESUMEN[idx];
   if (!g) return;
   document.getElementById('modalTitle').textContent = g.comisionista;
   document.getElementById('modalSub').innerHTML = `
@@ -1868,7 +1868,7 @@ function comis_exportarExcel() {
   }
   // Totales por moneda al final
   const totPorMon = new Map();
-  for (const g of RESUMEN) {
+  for (const g of COMIS_RESUMEN) {
     if (!totPorMon.has(g.moneda)) totPorMon.set(g.moneda, {ok:0,no:0,otro:0,ok_c:0,no_c:0,c:0});
     const t = totPorMon.get(g.moneda);
     t.ok += g.ok_total; t.no += g.no_total; t.otro += g.otro_total;
@@ -1913,9 +1913,9 @@ document.getElementById('fileInput').addEventListener('change', e => {
 document.getElementById('fileInput2').addEventListener('change', e => {
   if (e.target.files[0]) procesarArchivo(e.target.files[0]);
 });
-document.getElementById('searchInput').addEventListener('input', renderTabla);
-document.getElementById('monedaFilter').addEventListener('change', renderTabla);
-document.getElementById('estadoFilter').addEventListener('change', renderTabla);
+document.getElementById('searchInput').addEventListener('input', comis_renderTabla);
+document.getElementById('monedaFilter').addEventListener('change', comis_renderTabla);
+document.getElementById('estadoFilter').addEventListener('change', comis_renderTabla);
 document.getElementById('btnExport').addEventListener('click', exportarExcel);
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target.id === 'modal') comis_cerrarModal();
@@ -1925,7 +1925,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ============ INIT ============
-cargar();
+comis_cargar();
 
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrar(); cerrarModal('mbg-upload'); cerrarModal('mbg-fijar') } });
