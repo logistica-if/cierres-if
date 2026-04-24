@@ -123,6 +123,7 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <div class="srch"><input type="text" id="search" placeholder="Buscar artículo..." oninput="render()"></div>
   <button class="hbtn" onclick="abrirFijar()" id="btn-fijar">📌 A Fijar (0)</button>
   <button class="hbtn" onclick="abrirUpload()">↑ Actualizar</button>
+  <button class="hbtn" id="btn-historial" onclick="switchTab('historial')">📅 Historial Posición</button>
   <button class="hbtn" id="btn-reporte" onclick="switchTab('reporte')" style="margin-left:8px">📊 Reporte Semanal</button>
   <button class="hbtn" id="btn-posicion" onclick="switchTab('posicion')" style="border-color:#10b981;color:#10b981">📦 Posición</button>
   <button class="hbtn" onclick="descargarSnapshot()" title="Guardar snapshot para presentación del lunes">💾 Guardar</button>
@@ -176,6 +177,30 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
 </div>
 </div><!-- fin tab-posicion -->
 
+
+
+<!-- TAB HISTORIAL -->
+<div id="tab-historial" style="display:none;padding:20px;max-width:1100px;margin:0 auto">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <h2 style="font-size:16px;font-weight:800;flex:1">📅 Historial de Posición Semanal</h2>
+    <button onclick="guardarSnapshotPos()" style="padding:9px 18px;background:#10b981;color:#022c22;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">💾 Guardar posición de esta semana</button>
+    <button onclick="limpiarHistorial()" style="padding:8px 14px;background:transparent;border:1px solid #ef4444;border-radius:7px;font-size:12px;color:#ef4444;cursor:pointer;font-family:inherit">🗑 Limpiar historial</button>
+  </div>
+  <div id="hist-tabla-wrap" style="background:#111827;border:1px solid #1f2937;border-radius:10px;overflow:hidden">
+    <div style="overflow-x:auto" id="hist-scroll">
+      <div id="hist-empty" style="padding:40px;text-align:center;color:#6b7280;font-size:13px">
+        No hay historial guardado. Hacé clic en "Guardar posición de esta semana" cada viernes.
+      </div>
+      <table id="hist-table" style="width:100%;border-collapse:collapse;display:none;font-size:12px">
+        <thead id="hist-thead"></thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:10px;font-size:11px;color:#6b7280;line-height:1.6">
+    Se guardan artículos con posición ≥ 20 tn o negativa. Columnas: posición en tn por semana, PPP saldos pendientes de retirar, último precio de compra (positivos) o última venta (negativos).
+  </div>
+</div>
 
 <!-- TAB REPORTE SEMANAL -->
 <div id="tab-reporte" style="display:none;padding:20px;max-width:1200px;margin:0 auto">
@@ -965,13 +990,18 @@ var REP_DATA = {
   document.getElementById('rep-viernes').value=iso(vi);
 })();
 function switchTab(tab){
-  document.getElementById('tab-posicion').style.display=tab==='posicion'?'block':'none';
-  document.getElementById('tab-reporte').style.display=tab==='reporte'?'block':'none';
-  document.getElementById('btn-posicion').style.borderColor=tab==='posicion'?'#10b981':'';
-  document.getElementById('btn-posicion').style.color=tab==='posicion'?'#10b981':'';
-  document.getElementById('btn-reporte').style.borderColor=tab==='reporte'?'#f59e0b':'';
-  document.getElementById('btn-reporte').style.color=tab==='reporte'?'#f59e0b':'';
-  calcReporte();
+  document.getElementById('tab-posicion').style.display  = tab==='posicion'  ? 'block' : 'none';
+  document.getElementById('tab-reporte').style.display   = tab==='reporte'   ? 'block' : 'none';
+  document.getElementById('tab-historial').style.display = tab==='historial' ? 'block' : 'none';
+  var tabs = {posicion:'#10b981', reporte:'#f59e0b', historial:'#8b5cf6'};
+  ['posicion','reporte','historial'].forEach(function(t){
+    var el = document.getElementById('btn-'+t);
+    if (!el) return;
+    el.style.borderColor = tab===t ? tabs[t] : '';
+    el.style.color       = tab===t ? tabs[t] : '';
+  });
+  if (tab==='reporte') calcReporte();
+  if (tab==='historial') renderHistorial();
 }
 function parseReporteDesdeWB(wb){
   function nv(v){try{return parseFloat(String(v||'').replace(',','.').trim())||0}catch(e){return 0}}
@@ -1110,6 +1140,150 @@ function descargarSnapshot() {
   a.download = 'posicion_semana_'+lunes+'_al_'+viernes+'.html';
   a.click();
   toast('✓ Snapshot guardado — ' + a.download);
+}
+
+
+
+// ── HISTORIAL DE POSICIÓN ──────────────────────────────────
+function getHistorial(){ try{return JSON.parse(localStorage.getItem('hist_posicion')||'[]')}catch(e){return[]} }
+function saveHistorial(arr){ localStorage.setItem('hist_posicion', JSON.stringify(arr)) }
+
+function guardarSnapshotPos(){
+  // Armar resumen de la posición actual
+  var fecha = new Date().toLocaleDateString('es-AR'); // DD/MM/YYYY
+  var semana = 'Sem ' + getSemanaNum() + ' (' + fecha + ')';
+
+  // Verificar si ya existe esta semana
+  var hist = getHistorial();
+  var semNum = getSemanaNum();
+  if (hist.find(function(h){ return h.semNum === semNum })){
+    if (!confirm('Ya existe un snapshot de esta semana. ¿Sobreescribir?')) return;
+    hist = hist.filter(function(h){ return h.semNum !== semNum });
+  }
+
+  var snap = { semana: semana, semNum: semNum, fecha: fecha, arts: [] };
+
+  POSICION.forEach(function(p){
+    if (p.es_fab) return;
+    if ('agua' === p.art.toLowerCase()) return;
+    if (p.pos < 0.5 && p.pos > -0.5) return; // solo > 0.5tn o negativos
+    if (p.pos < 20 && p.pos >= 0) return;     // solo >= 20tn o negativos
+
+    // Último precio compra (mayor nro)
+    var lastC = (p.comp_det||[]).slice().sort(function(a,b){ return (b.nro||'').localeCompare(a.nro||'') });
+    var ultC = lastC.length ? lastC[0].precio : null;
+    // Último precio venta
+    var lastV = (p.vta_det||[]).slice().sort(function(a,b){ return (b.nro||'').localeCompare(a.nro||'') });
+    var ultV = lastV.length ? lastV[0].precio : null;
+
+    snap.arts.push({
+      art:   p.art,
+      grupo: p.grupo,
+      pos:   p.pos,
+      uni:   p.uni,
+      ppp_c: p.ppp_c,
+      ppp_v: p.ppp_v,
+      ult_c: ultC,
+      ult_v: ultV
+    });
+  });
+
+  snap.arts.sort(function(a,b){ return b.pos - a.pos });
+  hist.push(snap);
+  // Mantener solo las últimas 20 semanas
+  if (hist.length > 20) hist = hist.slice(-20);
+  saveHistorial(hist);
+  renderHistorial();
+  switchTab('historial');
+  toast('✓ Posición guardada — ' + semana + ' (' + snap.arts.length + ' artículos)');
+}
+
+function getSemanaNum(){
+  var now = new Date();
+  var start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+}
+
+function limpiarHistorial(){
+  if (!confirm('¿Borrar todo el historial de posiciones?')) return;
+  localStorage.removeItem('hist_posicion');
+  renderHistorial();
+  toast('Historial borrado');
+}
+
+function renderHistorial(){
+  var hist = getHistorial();
+  var empty = document.getElementById('hist-empty');
+  var table = document.getElementById('hist-table');
+
+  if (!hist.length){
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'table';
+
+  // Recopilar todos los artículos que aparecen en alguna semana
+  var artsSet = {};
+  hist.forEach(function(h){
+    h.arts.forEach(function(a){ artsSet[a.art] = a });
+  });
+
+  // Ordenar: primero negativos (por pos asc), luego positivos (por pos desc)
+  var arts_neg = Object.values(artsSet).filter(function(a){ return a.pos < 0 }).sort(function(a,b){ return a.pos-b.pos });
+  var arts_pos = Object.values(artsSet).filter(function(a){ return a.pos >= 0 }).sort(function(a,b){ return b.pos-a.pos });
+  var artsList = arts_neg.concat(arts_pos);
+
+  // Encabezado: columnas fijas + una col por semana (posición) + precios de la última semana
+  var lastSnap = hist[hist.length-1];
+  var semanas = hist.map(function(h){ return h.semana });
+
+  var thead = '<tr>';
+  thead += '<th style="background:#0f172a;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;white-space:nowrap;position:sticky;left:0;z-index:10">Artículo</th>';
+  thead += '<th style="background:#0f172a;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#6b7280">Grupo</th>';
+  semanas.forEach(function(s, i){
+    var isLast = i === semanas.length-1;
+    thead += '<th style="background:'+(isLast?'#0f2a1a':'#0f172a')+';padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:'+(isLast?'#10b981':'#6b7280')+';white-space:nowrap">'+s+'</th>';
+  });
+  thead += '<th style="background:#1a0f2a;padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#8b5cf6;white-space:nowrap">PPP Pend.</th>';
+  thead += '<th style="background:#1a0f2a;padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#8b5cf6;white-space:nowrap">Últ. Compra</th>';
+  thead += '<th style="background:#1a0f2a;padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:#f59e0b;white-space:nowrap">Últ. Venta</th>';
+  thead += '</tr>';
+  document.getElementById('hist-thead').innerHTML = thead;
+
+  // Filas
+  var tbody = artsList.map(function(a){
+    // Obtener datos de la última semana para precios
+    var lastArt = lastSnap.arts.find(function(x){ return x.art === a.art }) || {};
+    var isNeg = a.pos < 0;
+    var rowStyle = isNeg ? 'background:#1a0a0a;border-left:3px solid #ef4444' : '';
+
+    var row = '<tr style="border-bottom:1px solid #1a2332;'+rowStyle+'">';
+    row += '<td style="padding:7px 10px;font-weight:500;color:#e2e8f0;white-space:nowrap;position:sticky;left:0;background:'+(isNeg?'#1a0a0a':'#111827')+';z-index:5">'+esc(a.art.length>38?a.art.substring(0,38)+'...':a.art)+'</td>';
+    row += '<td style="padding:7px 10px"><span style="background:#1f2937;color:#9ca3af;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">'+esc(a.grupo)+'</span></td>';
+
+    // Posición por semana
+    hist.forEach(function(h, i){
+      var snap = h.arts.find(function(x){ return x.art === a.art });
+      var isLast = i === hist.length-1;
+      var val = snap ? snap.pos : null;
+      var color = val===null ? '#6b7280' : val<0 ? '#ef4444' : '#10b981';
+      var bg = isLast ? (val===null?'#111827':val<0?'#1a0a0a':'#071a10') : '#111827';
+      row += '<td style="padding:7px 10px;text-align:right;font-family:monospace;font-weight:'+(isLast?'700':'400')+';color:'+color+';background:'+bg+'">'+(val!==null?fmt(val)+' '+(snap.uni||'tn'):'—')+'</td>';
+    });
+
+    // Precios última semana
+    var ppp = lastArt.ppp_c || lastArt.ppp_v;
+    var ult_c = lastArt.ult_c;
+    var ult_v = lastArt.ult_v;
+    row += '<td style="padding:7px 10px;text-align:right;font-family:monospace;color:#8b5cf6">'+(ppp?'U$S '+ppp:'—')+'</td>';
+    row += '<td style="padding:7px 10px;text-align:right;font-family:monospace;color:#10b981">'+(ult_c?'U$S '+ult_c:'—')+'</td>';
+    row += '<td style="padding:7px 10px;text-align:right;font-family:monospace;color:#f59e0b">'+(ult_v?'U$S '+ult_v:'—')+'</td>';
+    row += '</tr>';
+    return row;
+  }).join('');
+  document.getElementById('hist-tbody').innerHTML = tbody;
 }
 
 
