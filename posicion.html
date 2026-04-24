@@ -563,7 +563,7 @@ function procesar() {
 }
 
 // ============ RENDER ============
-function render() {
+function comis_render() {
   if (!DATA || !DATA.filas || DATA.filas.length === 0) {
     renderEmpty();
     return;
@@ -765,7 +765,7 @@ function abrirModal(idx) {
   document.getElementById('modal').classList.add('active');
 }
 
-function cerrarModal() {
+function comis_cerrarModal() {
   document.getElementById('modal').classList.remove('active');
 }
 
@@ -1938,6 +1938,8 @@ function renderHistorial(){
 
 
 // ============ ESTADO ============
+function comis_toast(msg,type){ toast(msg,type); }
+
 let COMIS_DATA = null;  // { filas: [...], fechaCarga: ISO }
 let COMIS_RESUMEN = []; // [{comisionista, moneda, ok_count, ok_total, no_count, no_total, total, filas: []}]
 let sortBy = 'total';
@@ -1945,13 +1947,13 @@ let sortDir = 'desc';
 
 // ============ LOCALSTORAGE ============
 const STORAGE_KEY = 'if_comisiones_v1';
-function guardar() {
+function comis_guardar() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) { console.warn('No se pudo guardar', e); }
 }
-function cargar() {
+function comis_cargar() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { COMIS_DATA = JSON.parse(raw); procesar(); render(); }
+    if (raw) { COMIS_DATA = JSON.parse(raw); comis_procesar(); comis_render(); }
   } catch(e) { console.warn('No se pudo cargar', e); }
 }
 
@@ -1983,7 +1985,7 @@ function monedaClass(m) {
   if (m === '$') return 'ars';
   return 'other';
 }
-function toast(msg, tipo='success') {
+function comis_comis_toast(msg, tipo='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast active ' + tipo;
@@ -1997,7 +1999,7 @@ function procesarArchivo(file) {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
       if (!wb.Sheets['VENTAS IF']) {
-        toast('No se encontró la hoja VENTAS IF', 'error');
+        comis_toast('No se encontró la hoja VENTAS IF', 'error');
         return;
       }
       const rows = XLSX.utils.sheet_to_json(wb.Sheets['VENTAS IF'], {header:1, raw:false, defval:null});
@@ -2034,20 +2036,20 @@ function procesarArchivo(file) {
         });
       }
       COMIS_DATA = { filas, fechaCarga: new Date().toISOString() };
-      guardar();
-      procesar();
-      render();
-      toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
+      comis_guardar();
+      comis_procesar();
+      comis_render();
+      comis_toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
     } catch(err) {
       console.error(err);
-      toast('Error al procesar archivo: ' + err.message, 'error');
+      comis_toast('Error al procesar archivo: ' + err.message, 'error');
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
 // ============ AGRUPAR ============
-function procesar() {
+function comis_procesar() {
   if (!COMIS_DATA || !COMIS_DATA.filas) { COMIS_RESUMEN = []; return; }
   const mapa = new Map();
   for (const f of COMIS_DATA.filas) {
@@ -2076,13 +2078,13 @@ function procesar() {
 }
 
 // ============ RENDER ============
-function render() {
+function comis_render() {
   if (!COMIS_DATA || !COMIS_DATA.filas || COMIS_DATA.filas.length === 0) {
-    renderEmpty();
+    comis_renderEmpty();
     return;
   }
-  renderSidebar();
-  renderTabla();
+  comis_renderSidebar();
+  comis_renderTabla();
   document.getElementById('filters').style.display = 'flex';
   document.getElementById('btnExport').disabled = false;
 
@@ -2090,11 +2092,11 @@ function render() {
   document.getElementById('lastUpdate').textContent = '↻ Actualizado: ' + d.toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
 }
 
-function renderEmpty() {
+function comis_comis_renderEmpty() {
   // Solo visible al inicio, no hacemos nada
 }
 
-function renderSidebar() {
+function comis_comis_renderSidebar() {
   // Totales globales por moneda
   const porMoneda = new Map();
   for (const g of RESUMEN) {
@@ -2130,7 +2132,7 @@ function renderSidebar() {
   sel.value = actual;
 }
 
-function renderTabla() {
+function comis_comis_renderTabla() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const fMoneda = document.getElementById('monedaFilter').value;
   const fEstado = document.getElementById('estadoFilter').value;
@@ -2185,7 +2187,7 @@ function renderTabla() {
   } else {
     for (let i = 0; i < filtrado.length; i++) {
       const g = filtrado[i];
-      html += `<tr onclick="abrirModal(${COMIS_RESUMEN.indexOf(g)})">
+      html += `<tr onclick="comis_abrirModal(${COMIS_RESUMEN.indexOf(g)})">
         <td><strong>${g.comisionista}</strong></td>
         <td class="num"><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></td>
         <td class="num">${g.ok_count>0?g.ok_count:'<span class="amount-zero">—</span>'}</td>
@@ -2220,11 +2222,11 @@ function renderTabla() {
 function cambiarSort(col) {
   if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortBy = col; sortDir = (col === 'comisionista' || col === 'moneda') ? 'asc' : 'desc'; }
-  renderTabla();
+  comis_renderTabla();
 }
 
 // ============ MODAL ============
-function abrirModal(idx) {
+function comis_comis_abrirModal(idx) {
   const g = RESUMEN[idx];
   if (!g) return;
   document.getElementById('modalTitle').textContent = g.comisionista;
@@ -2278,13 +2280,13 @@ function abrirModal(idx) {
   document.getElementById('modal').classList.add('active');
 }
 
-function cerrarModal() {
+function comis_comis_cerrarModal() {
   document.getElementById('modal').classList.remove('active');
 }
 
 // ============ EXPORT ============
-function exportarExcel() {
-  if (!COMIS_RESUMEN.length) { toast('No hay datos para exportar', 'error'); return; }
+function comis_exportarExcel() {
+  if (!COMIS_RESUMEN.length) { comis_toast('No hay datos para exportar', 'error'); return; }
 
   // Hoja 1: Resumen
   const resumenRows = [
@@ -2336,7 +2338,7 @@ function exportarExcel() {
 
   const fecha = new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb, `Comisiones_pendientes_${fecha}.xlsx`);
-  toast('✓ Excel exportado', 'success');
+  comis_toast('✓ Excel exportado', 'success');
 }
 
 // ============ EVENTOS ============
@@ -2351,10 +2353,10 @@ document.getElementById('monedaFilter').addEventListener('change', renderTabla);
 document.getElementById('estadoFilter').addEventListener('change', renderTabla);
 document.getElementById('btnExport').addEventListener('click', exportarExcel);
 document.getElementById('modal').addEventListener('click', e => {
-  if (e.target.id === 'modal') cerrarModal();
+  if (e.target.id === 'modal') comis_cerrarModal();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') cerrarModal();
+  if (e.key === 'Escape') comis_cerrarModal();
 });
 
 // ============ INIT ============
