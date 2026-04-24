@@ -209,11 +209,11 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <style>
 
   *{box-sizing:border-box;margin:0;padding:0}
-  #tab-comisiones{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f6f8;color:#1f2937;font-size:14px}
-  #tab-comisiones .app{display:flex;min-height:100vh}
+  #tab-comisiones body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f6f8;color:#1f2937;font-size:14px}
+  #tab-comisiones .app {display:flex;min-height:100vh}
 
   /* Sidebar */
-  #tab-comisiones .sidebar{width:280px;background:#1e293b;color:#e2e8f0;padding:24px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+  #tab-comisiones .sidebar {width:280px;background:#1e293b;color:#e2e8f0;padding:24px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
   .sidebar h1{font-size:18px;color:#fff;margin-bottom:4px;font-weight:600}
   .sidebar .subtitle{font-size:12px;color:#94a3b8;margin-bottom:24px}
   .kpi-group{margin-bottom:20px}
@@ -228,8 +228,8 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   .sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid #334155;font-size:11px;color:#64748b}
 
   /* Main */
-  #tab-comisiones .main{flex:1;padding:24px 32px;max-width:calc(100vw - 280px)}
-  #tab-comisiones .main-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+  #tab-comisiones .main {flex:1;padding:24px 32px;max-width:calc(100vw - 280px)}
+  .main-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap}
   .main-header h2{font-size:22px;color:#0f172a;font-weight:600}
   .main-header .subtitle{font-size:13px;color:#64748b;margin-top:4px}
   .actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -242,24 +242,24 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   .btn-ghost:hover{background:#e2e8f0;color:#1e293b}
 
   /* Filtros */
-  #tab-comisiones .filters{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .filters{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .filters input[type="text"],.filters select{padding:7px 10px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px;font-family:inherit;min-width:200px}
   .filters input[type="text"]:focus,.filters select:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,0.15)}
   .filters label{font-size:12px;color:#64748b;font-weight:500}
   .chip{background:#f1f5f9;padding:4px 10px;border-radius:999px;font-size:12px;color:#475569}
 
   /* Tabla */
-  #tab-comisiones .table-wrap{background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden}
-  #tab-comisiones table{width:100%;border-collapse:collapse;font-size:13px}
-  thead #tab-comisiones th{background:#f8fafc;color:#475569;text-align:left;padding:10px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:1}
+  .table-wrap{background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{background:#f8fafc;color:#475569;text-align:left;padding:10px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:1}
   thead th:hover{background:#f1f5f9}
   thead th.sorted-asc::after{content:' ↑';color:#0ea5e9}
   thead th.sorted-desc::after{content:' ↓';color:#0ea5e9}
   thead th.num,tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
-  tbody #tab-comisiones tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s}
+  tbody tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s}
   tbody tr:hover{background:#f8fafc}
   tbody tr:last-child{border-bottom:none}
-  tbody #tab-comisiones td{padding:10px 12px;vertical-align:middle}
+  tbody td{padding:10px 12px;vertical-align:middle}
   .moneda-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
   .moneda-badge.usd{background:#dcfce7;color:#166534}
   .moneda-badge.ars{background:#dbeafe;color:#1e40af}
@@ -270,7 +270,7 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   .amount-total{color:#1e293b;font-weight:600}
   .amount-zero{color:#cbd5e1}
   .total-row{background:#f8fafc !important;font-weight:600;border-top:2px solid #e2e8f0}
-  .total-row #tab-comisiones td{padding:12px;color:#0f172a}
+  .total-row td{padding:12px;color:#0f172a}
 
   /* Empty state */
   .empty-state{background:#fff;border:2px dashed #cbd5e1;border-radius:12px;padding:60px 30px;text-align:center}
@@ -281,15 +281,15 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   /* Modal */
   .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
   .modal-overlay.active{display:flex}
-  #tab-comisiones .modal{background:#fff;border-radius:12px;max-width:1100px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+  .modal{background:#fff;border-radius:12px;max-width:1100px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
   .modal-header{padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
   .modal-header h3{font-size:18px;color:#0f172a;margin-bottom:6px}
   .modal-header .sub{font-size:13px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap}
   .modal-close{background:transparent;border:none;font-size:24px;color:#94a3b8;cursor:pointer;line-height:1;padding:0 4px}
   .modal-close:hover{color:#1e293b}
-  .modal-#tab-comisiones{padding:20px 24px;overflow-y:auto;flex:1}
-  .modal-body #tab-comisiones table{font-size:12px}
-  .modal-body thead #tab-comisiones th{font-size:10px}
+  .modal-body{padding:20px 24px;overflow-y:auto;flex:1}
+  .modal-body table{font-size:12px}
+  .modal-body thead th{font-size:10px}
   .modal-footer{padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8fafc;border-radius:0 0 12px 12px}
   .modal-footer .totals{font-size:13px;color:#475569;display:flex;gap:16px}
   .status-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
@@ -308,13 +308,13 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
 
   /* Responsive */
   @media(max-width:900px){
-    #tab-comisiones .app{flex-direction:column}
-    #tab-comisiones .sidebar{width:100%;height:auto;position:relative}
-    #tab-comisiones .main{max-width:100%;padding:16px}
+    #tab-comisiones .app {flex-direction:column}
+    #tab-comisiones .sidebar {width:100%;height:auto;position:relative}
+    #tab-comisiones .main {max-width:100%;padding:16px}
   }
 
   </style>
-  
+
 <div class="app">
 
   <aside class="sidebar">
@@ -1501,10 +1501,10 @@ function renderHistorial(){
 }
 
 
-
-// ============ ESTADO ============
 function comis_toast(msg,type){ toast(msg,type); }
 
+
+// ============ ESTADO ============
 let COMIS_DATA = null;  // { filas: [...], fechaCarga: ISO }
 let COMIS_RESUMEN = []; // [{comisionista, moneda, ok_count, ok_total, no_count, no_total, total, filas: []}]
 let sortBy = 'total';
@@ -1550,7 +1550,7 @@ function monedaClass(m) {
   if (m === '$') return 'ars';
   return 'other';
 }
-function comis_comis_toast(msg, tipo='success') {
+function comis_toast_orig(msg, tipo='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast active ' + tipo;
@@ -1563,51 +1563,49 @@ function procesarArchivo(file) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
-      if (!wb.Sheets['VENTAS IF']) {
-        comis_toast('No se encontró la hoja VENTAS IF', 'error');
-        return;
+      function parsearHoja(sheetName, empresa) {
+        const sh = wb.Sheets[sheetName];
+        if (!sh) return [];
+        const rows = XLSX.utils.sheet_to_json(sh, {defval:null, raw:false});
+        const filas = [];
+        for (const r of rows) {
+          const comisiono = String(r['Comisiono'] || '').trim().toUpperCase();
+          if (comisiono !== 'NO') continue;
+          const okComi = String(r['Esta ok para comisionar'] || '').trim().toUpperCase();
+          const comisionista = String(r['Comisionista'] || '').trim() || '(sin comisionista)';
+          const moneda = String(r['Moneda'] || '').trim() || '(sin moneda)';
+          const total = parseFloat(r['Comision total'] || 0) || 0;
+          filas.push({
+            empresa: empresa,
+            fecha: r['Fecha'] ? String(r['Fecha']).substring(0,10) : '',
+            numero: String(r['Numero'] || '').trim(),
+            cuenta: String(r['Cuenta corriente'] || r['Cliente'] || '').trim(),
+            articulo: String(r['Articulo'] || '').trim(),
+            moneda: moneda,
+            precio: parseFloat(r['Precio'] || 0) || 0,
+            pedido: parseFloat(r['Pedido'] || r['Cantidad'] || 0) || 0,
+            entregado: parseFloat(r['Entregado'] || 0) || 0,
+            facturado: parseFloat(r['Facturado'] || 0) || 0,
+            comisionista: comisionista,
+            comisionPct: parseFloat(r['Comisión'] || r['Comision'] || 0) || 0,
+            comisionTotal: total,
+            okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
+          });
+        }
+        return filas;
       }
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets['VENTAS IF'], {header:1, raw:false, defval:null});
-      // rows[0] = headers, rows[1..] = data
-      // Columnas por índice:
-      // 0 A Fecha, 2 C Numero, 4 E Cuenta, 8 I Articulo, 10 K Moneda, 11 L Precio,
-      // 12 M Pedido, 13 N Entregado, 14 O P.Rem/Ped, 15 P Facturado,
-      // 16 Q Comisionista, 17 R Comisión (USD/tn o %), 20 U ComTotal,
-      // 22 W Comisiono, 23 X OkComi
-      const filas = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (!r || r.length === 0) continue;
-        const comisiono = (r[22] || '').toString().trim().toUpperCase();
-        if (comisiono !== 'NO') continue;
-        const comi = (r[16] || '').toString().trim();
-        const moneda = (r[10] || '').toString().trim();
-        const okComi = (r[23] || '').toString().trim().toUpperCase();
-        const total = parseFloat(r[20]) || 0;
-        filas.push({
-          fecha: r[0],
-          numero: r[2],
-          cuenta: r[4] || '',
-          articulo: r[8] || '',
-          moneda: moneda || '(sin moneda)',
-          precio: parseFloat(r[11]) || 0,
-          pedido: parseFloat(r[12]) || 0,
-          entregado: parseFloat(r[13]) || 0,
-          facturado: parseFloat(r[15]) || 0,
-          comisionista: comi || '(sin comisionista)',
-          comisionPct: parseFloat(r[17]) || 0,
-          comisionTotal: total,
-          okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
-        });
-      }
+      const filasIF    = parsearHoja('VENTAS IF',    'IF');
+      const filasHIRYO = parsearHoja('VENTAS HIRYO', 'HIRYO');
+      const filas = filasIF.concat(filasHIRYO);
+      if (!filas.length) { comis_toast('No hay comisiones pendientes (Comisiono=NO)', 'error'); return; }
       COMIS_DATA = { filas, fechaCarga: new Date().toISOString() };
       comis_guardar();
       comis_procesar();
       comis_render();
-      comis_toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
+      comis_toast('✓ ' + filas.length + ' comisiones pendientes (IF: ' + filasIF.length + ', HIRYO: ' + filasHIRYO.length + ')', 'success');
     } catch(err) {
       console.error(err);
-      comis_toast('Error al procesar archivo: ' + err.message, 'error');
+      comis_toast('Error: ' + err.message, 'error');
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1657,11 +1655,11 @@ function comis_render() {
   document.getElementById('lastUpdate').textContent = '↻ Actualizado: ' + d.toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
 }
 
-function comis_comis_renderEmpty() {
+function comis_renderEmpty() {
   // Solo visible al inicio, no hacemos nada
 }
 
-function comis_comis_renderSidebar() {
+function comis_renderSidebar() {
   // Totales globales por moneda
   const porMoneda = new Map();
   for (const g of COMIS_RESUMEN) {
@@ -1697,7 +1695,7 @@ function comis_comis_renderSidebar() {
   sel.value = actual;
 }
 
-function comis_comis_renderTabla() {
+function comis_renderTabla() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const fMoneda = document.getElementById('monedaFilter').value;
   const fEstado = document.getElementById('estadoFilter').value;
@@ -1732,7 +1730,7 @@ function comis_comis_renderTabla() {
 
   const hdr = (key, label, extra='') => {
     const cls = sortBy === key ? (sortDir==='asc'?'sorted-asc':'sorted-desc') : '';
-    return `<th class="${extra} ${cls}" onclick="comis_sortBy('${key}')">${label}</th>`;
+    return `<th class="${extra} ${cls}" onclick="comis_cambiarSort('${key}')">${label}</th>`;
   };
 
   let html = `<div class="table-wrap"><table>
@@ -1784,14 +1782,14 @@ function comis_comis_renderTabla() {
   document.getElementById('content').innerHTML = html;
 }
 
-function comis_sortBy(col) {
+function comis_cambiarSort(col) {
   if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortBy = col; sortDir = (col === 'comisionista' || col === 'moneda') ? 'asc' : 'desc'; }
   comis_renderTabla();
 }
 
 // ============ MODAL ============
-function comis_comis_abrirModal(idx) {
+function comis_abrirModal(idx) {
   const g = COMIS_RESUMEN[idx];
   if (!g) return;
   document.getElementById('modalTitle').textContent = g.comisionista;
@@ -1845,7 +1843,7 @@ function comis_comis_abrirModal(idx) {
   document.getElementById('modal').classList.add('active');
 }
 
-function comis_comis_cerrarModal() {
+function comis_cerrarModal() {
   document.getElementById('modal').classList.remove('active');
 }
 
@@ -1913,9 +1911,9 @@ document.getElementById('fileInput').addEventListener('change', e => {
 document.getElementById('fileInput2').addEventListener('change', e => {
   if (e.target.files[0]) procesarArchivo(e.target.files[0]);
 });
-document.getElementById('searchInput').addEventListener('input', comis_renderTabla);
-document.getElementById('monedaFilter').addEventListener('change', comis_renderTabla);
-document.getElementById('estadoFilter').addEventListener('change', comis_renderTabla);
+document.getElementById('searchInput').addEventListener('input', renderTabla);
+document.getElementById('monedaFilter').addEventListener('change', renderTabla);
+document.getElementById('estadoFilter').addEventListener('change', renderTabla);
 document.getElementById('btnExport').addEventListener('click', exportarExcel);
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target.id === 'modal') comis_cerrarModal();
@@ -1925,7 +1923,8 @@ document.addEventListener('keydown', e => {
 });
 
 // ============ INIT ============
-comis_cargar();
+comis_// init comisiones
+try { comis_cargar(); } catch(e) {}
 
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrar(); cerrarModal('mbg-upload'); cerrarModal('mbg-fijar') } });
