@@ -471,48 +471,60 @@ function procesarArchivo(file) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
-      if (!wb.Sheets['VENTAS IF']) {
-        toast('No se encontró la hoja VENTAS IF', 'error');
+
+      function parsearHoja(sheetName, empresa) {
+        const sh = wb.Sheets[sheetName];
+        if (!sh) return [];
+        const rows = XLSX.utils.sheet_to_json(sh, {defval:null, raw:false});
+        const filas = [];
+        for (const r of rows) {
+          // Columna Comisiono: solo los NO (pendientes de pagar)
+          const comisiono = String(r['Comisiono'] || r['comisiono'] || '').trim().toUpperCase();
+          if (comisiono !== 'NO') continue;
+
+          const okComi = String(r['Esta ok para comisionar'] || '').trim().toUpperCase();
+          const comisionista = String(r['Comisionista'] || r['comisionista'] || '').trim() || '(sin comisionista)';
+          const moneda = String(r['Moneda'] || r['moneda'] || '').trim() || '(sin moneda)';
+          // Comision total — puede llamarse distinto
+          const total = parseFloat(r['Comision total'] || r['ComTotal'] || r['Comision Total'] || 0) || 0;
+          // Pendiente de entrega
+          const pendiente = parseFloat(r['P.Rem/Ped'] || r['Remi/Pedi'] || r['Pendiente'] || 0) || 0;
+
+          filas.push({
+            empresa: empresa,
+            fecha: r['Fecha'] ? String(r['Fecha']).substring(0,10) : '',
+            numero: String(r['Numero'] || r['numero'] || '').trim(),
+            cuenta: String(r['Cuenta corriente'] || r['Cliente'] || r['cuenta'] || '').trim(),
+            articulo: String(r['Articulo'] || r['articulo'] || '').trim(),
+            moneda: moneda,
+            precio: parseFloat(r['Precio'] || 0) || 0,
+            pedido: parseFloat(r['Pedido'] || r['Cantidad'] || 0) || 0,
+            entregado: parseFloat(r['Entregado'] || 0) || 0,
+            facturado: parseFloat(r['Facturado'] || 0) || 0,
+            pendiente: pendiente,
+            comisionista: comisionista,
+            comisionPct: parseFloat(r['Comisión'] || r['Comision'] || r['Comisi≤n'] || 0) || 0,
+            comisionTotal: total,
+            okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
+          });
+        }
+        return filas;
+      }
+
+      const filasIF    = parsearHoja('VENTAS IF',    'IF');
+      const filasHIRYO = parsearHoja('VENTAS HIRYO', 'HIRYO');
+      const filas = filasIF.concat(filasHIRYO);
+
+      if (!filas.length) {
+        toast('No se encontraron comisiones pendientes (Comisiono=NO)', 'error');
         return;
       }
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets['VENTAS IF'], {header:1, raw:false, defval:null});
-      // rows[0] = headers, rows[1..] = data
-      // Columnas por índice:
-      // 0 A Fecha, 2 C Numero, 4 E Cuenta, 8 I Articulo, 10 K Moneda, 11 L Precio,
-      // 12 M Pedido, 13 N Entregado, 14 O P.Rem/Ped, 15 P Facturado,
-      // 16 Q Comisionista, 17 R Comisión (USD/tn o %), 20 U ComTotal,
-      // 22 W Comisiono, 23 X OkComi
-      const filas = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (!r || r.length === 0) continue;
-        const comisiono = (r[22] || '').toString().trim().toUpperCase();
-        if (comisiono !== 'NO') continue;
-        const comi = (r[16] || '').toString().trim();
-        const moneda = (r[10] || '').toString().trim();
-        const okComi = (r[23] || '').toString().trim().toUpperCase();
-        const total = parseFloat(r[20]) || 0;
-        filas.push({
-          fecha: r[0],
-          numero: r[2],
-          cuenta: r[4] || '',
-          articulo: r[8] || '',
-          moneda: moneda || '(sin moneda)',
-          precio: parseFloat(r[11]) || 0,
-          pedido: parseFloat(r[12]) || 0,
-          entregado: parseFloat(r[13]) || 0,
-          facturado: parseFloat(r[15]) || 0,
-          comisionista: comi || '(sin comisionista)',
-          comisionPct: parseFloat(r[17]) || 0,
-          comisionTotal: total,
-          okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
-        });
-      }
-      DATA = { filas, fechaCarga: new Date().toISOString() };
+
+      COMIS_DATA = { filas, fechaCarga: new Date().toISOString() };
       guardar();
       procesar();
       render();
-      toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
+      toast(`✓ ${filas.length} comisiones pendientes (IF: ${filasIF.length}, HIRYO: ${filasHIRYO.length})`, 'success');
     } catch(err) {
       console.error(err);
       toast('Error al procesar archivo: ' + err.message, 'error');
