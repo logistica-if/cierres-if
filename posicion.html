@@ -123,6 +123,7 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <div class="srch"><input type="text" id="search" placeholder="Buscar artículo..." oninput="render()"></div>
   <button class="hbtn" onclick="abrirFijar()" id="btn-fijar">📌 A Fijar (0)</button>
   <button class="hbtn" onclick="abrirUpload()">↑ Actualizar</button>
+  <button class="hbtn" id="btn-comisiones" onclick="switchTab('comisiones')">💰 Comisiones</button>
   <button class="hbtn" id="btn-historial" onclick="switchTab('historial')">📅 Historial Posición</button>
   <button class="hbtn" id="btn-reporte" onclick="switchTab('reporte')" style="margin-left:8px">📊 Reporte Semanal</button>
   <button class="hbtn" id="btn-posicion" onclick="switchTab('posicion')" style="border-color:#10b981;color:#10b981">📦 Posición</button>
@@ -200,6 +201,641 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <div style="margin-top:10px;font-size:11px;color:#6b7280;line-height:1.6">
     Se guardan artículos con posición ≥ 20 tn o negativa. Columnas: posición en tn por semana, PPP saldos pendientes de retirar, último precio de compra (positivos) o última venta (negativos).
   </div>
+</div>
+
+
+<!-- TAB COMISIONES -->
+<div id="tab-comisiones" style="display:none">
+  <style>
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  #tab-comisiones{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f6f8;color:#1f2937;font-size:14px}
+  #tab-comisiones .app{display:flex;min-height:100vh}
+
+  /* Sidebar */
+  #tab-comisiones .sidebar{width:280px;background:#1e293b;color:#e2e8f0;padding:24px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+  .sidebar h1{font-size:18px;color:#fff;margin-bottom:4px;font-weight:600}
+  .sidebar .subtitle{font-size:12px;color:#94a3b8;margin-bottom:24px}
+  .kpi-group{margin-bottom:20px}
+  .kpi-group-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:10px;font-weight:600}
+  .kpi-card{background:#334155;border-radius:8px;padding:14px;margin-bottom:8px;border-left:3px solid #0ea5e9}
+  .kpi-card.ok{border-left-color:#10b981}
+  .kpi-card.pend{border-left-color:#f59e0b}
+  .kpi-card.total{border-left-color:#6366f1}
+  .kpi-label{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px}
+  .kpi-value{font-size:18px;font-weight:600;color:#fff;margin-top:4px;font-variant-numeric:tabular-nums}
+  .kpi-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+  .sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid #334155;font-size:11px;color:#64748b}
+
+  /* Main */
+  #tab-comisiones .main{flex:1;padding:24px 32px;max-width:calc(100vw - 280px)}
+  #tab-comisiones .main-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+  .main-header h2{font-size:22px;color:#0f172a;font-weight:600}
+  .main-header .subtitle{font-size:13px;color:#64748b;margin-top:4px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{padding:8px 14px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;font-family:inherit}
+  .btn-primary{background:#0ea5e9;color:#fff}
+  .btn-primary:hover{background:#0284c7}
+  .btn-secondary{background:#fff;color:#475569;border:1px solid #cbd5e1}
+  .btn-secondary:hover{background:#f8fafc;border-color:#94a3b8}
+  .btn-ghost{background:transparent;color:#64748b;padding:6px 10px}
+  .btn-ghost:hover{background:#e2e8f0;color:#1e293b}
+
+  /* Filtros */
+  #tab-comisiones .filters{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .filters input[type="text"],.filters select{padding:7px 10px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px;font-family:inherit;min-width:200px}
+  .filters input[type="text"]:focus,.filters select:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,0.15)}
+  .filters label{font-size:12px;color:#64748b;font-weight:500}
+  .chip{background:#f1f5f9;padding:4px 10px;border-radius:999px;font-size:12px;color:#475569}
+
+  /* Tabla */
+  #tab-comisiones .table-wrap{background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden}
+  #tab-comisiones table{width:100%;border-collapse:collapse;font-size:13px}
+  thead #tab-comisiones th{background:#f8fafc;color:#475569;text-align:left;padding:10px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:1}
+  thead th:hover{background:#f1f5f9}
+  thead th.sorted-asc::after{content:' ↑';color:#0ea5e9}
+  thead th.sorted-desc::after{content:' ↓';color:#0ea5e9}
+  thead th.num,tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tbody #tab-comisiones tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s}
+  tbody tr:hover{background:#f8fafc}
+  tbody tr:last-child{border-bottom:none}
+  tbody #tab-comisiones td{padding:10px 12px;vertical-align:middle}
+  .moneda-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+  .moneda-badge.usd{background:#dcfce7;color:#166534}
+  .moneda-badge.ars{background:#dbeafe;color:#1e40af}
+  .moneda-badge.other{background:#fef3c7;color:#92400e}
+  .count-chip{display:inline-block;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px;font-size:11px;margin-left:4px;font-variant-numeric:tabular-nums}
+  .amount-ok{color:#15803d;font-weight:500}
+  .amount-pend{color:#b45309;font-weight:500}
+  .amount-total{color:#1e293b;font-weight:600}
+  .amount-zero{color:#cbd5e1}
+  .total-row{background:#f8fafc !important;font-weight:600;border-top:2px solid #e2e8f0}
+  .total-row #tab-comisiones td{padding:12px;color:#0f172a}
+
+  /* Empty state */
+  .empty-state{background:#fff;border:2px dashed #cbd5e1;border-radius:12px;padding:60px 30px;text-align:center}
+  .empty-state h3{font-size:17px;color:#334155;margin-bottom:8px}
+  .empty-state p{color:#64748b;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5}
+  .empty-icon{font-size:48px;margin-bottom:12px;opacity:0.7}
+
+  /* Modal */
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .modal-overlay.active{display:flex}
+  #tab-comisiones .modal{background:#fff;border-radius:12px;max-width:1100px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+  .modal-header{padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .modal-header h3{font-size:18px;color:#0f172a;margin-bottom:6px}
+  .modal-header .sub{font-size:13px;color:#64748b;display:flex;gap:12px;flex-wrap:wrap}
+  .modal-close{background:transparent;border:none;font-size:24px;color:#94a3b8;cursor:pointer;line-height:1;padding:0 4px}
+  .modal-close:hover{color:#1e293b}
+  .modal-#tab-comisiones{padding:20px 24px;overflow-y:auto;flex:1}
+  .modal-body #tab-comisiones table{font-size:12px}
+  .modal-body thead #tab-comisiones th{font-size:10px}
+  .modal-footer{padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8fafc;border-radius:0 0 12px 12px}
+  .modal-footer .totals{font-size:13px;color:#475569;display:flex;gap:16px}
+  .status-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+  .status-ok{background:#dcfce7;color:#166534}
+  .status-no{background:#fef3c7;color:#92400e}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,0.2);transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:200}
+  .toast.active{transform:translateY(0);opacity:1}
+  .toast.success{background:#15803d}
+  .toast.error{background:#b91c1c}
+
+  /* Spinner */
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Responsive */
+  @media(max-width:900px){
+    #tab-comisiones .app{flex-direction:column}
+    #tab-comisiones .sidebar{width:100%;height:auto;position:relative}
+    #tab-comisiones .main{max-width:100%;padding:16px}
+  }
+
+  </style>
+  
+<div class="app">
+
+  <aside class="sidebar">
+    <h1>💰 Comisiones</h1>
+    <div class="subtitle">Pendientes de facturar</div>
+
+    <div class="kpi-group" id="kpiTotales">
+      <div class="kpi-group-title">Totales por moneda</div>
+      <div id="kpiCards">
+        <div style="color:#64748b;font-size:12px;padding:12px 0">Sin datos cargados</div>
+      </div>
+    </div>
+
+    <div class="kpi-group">
+      <div class="kpi-group-title">Resumen</div>
+      <div class="kpi-card">
+        <div class="kpi-label">Comisionistas</div>
+        <div class="kpi-value" id="kpiComisionistas">—</div>
+        <div class="kpi-sub" id="kpiNegocios">— negocios</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div id="lastUpdate">Sin carga previa</div>
+      <div style="margin-top:6px">IF & HIRYO · Logística</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h2>Resumen de comisiones pendientes</h2>
+        <div class="subtitle">Ventas con <strong>Comisionó = NO</strong> · agrupado por comisionista y moneda</div>
+      </div>
+      <div class="actions">
+        <label for="fileInput" class="btn btn-primary">
+          <span>↑</span> Actualizar datos
+        </label>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+        <button class="btn btn-secondary" id="btnExport" disabled>
+          <span>↓</span> Exportar Excel
+        </button>
+      </div>
+    </div>
+
+    <div class="filters" id="filters" style="display:none">
+      <input type="text" id="searchInput" placeholder="🔍 Buscar comisionista...">
+      <label>Moneda:
+        <select id="monedaFilter">
+          <option value="">Todas</option>
+        </select>
+      </label>
+      <label>Estado:
+        <select id="estadoFilter">
+          <option value="">Todos</option>
+          <option value="ok">Con monto OK</option>
+          <option value="pend">Con pendiente</option>
+        </select>
+      </label>
+      <div class="chip" id="countChip"></div>
+    </div>
+
+    <div id="content">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>Cargá el archivo Cupos IF-HIRYO</h3>
+        <p>Descargá el archivo del Google Sheets (Archivo → Descargar → Excel) y subilo con el botón <strong>Actualizar datos</strong>. Vamos a leer la hoja <strong>VENTAS IF</strong> y filtrar los negocios con <strong>Comisionó = NO</strong>.</p>
+        <label for="fileInput2" class="btn btn-primary" style="cursor:pointer">
+          <span>↑</span> Seleccionar archivo
+        </label>
+        <input type="file" id="fileInput2" accept=".xlsx,.xls" style="display:none">
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3 id="modalTitle">Detalle</h3>
+        <div class="sub" id="modalSub"></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <div class="totals" id="modalTotals"></div>
+      <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ ESTADO ============
+let DATA = null;  // { filas: [...], fechaCarga: ISO }
+let RESUMEN = []; // [{comisionista, moneda, ok_count, ok_total, no_count, no_total, total, filas: []}]
+let sortBy = 'total';
+let sortDir = 'desc';
+
+// ============ LOCALSTORAGE ============
+const STORAGE_KEY = 'if_comisiones_v1';
+function guardar() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) { console.warn('No se pudo guardar', e); }
+}
+function cargar() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { DATA = JSON.parse(raw); procesar(); render(); }
+  } catch(e) { console.warn('No se pudo cargar', e); }
+}
+
+// ============ HELPERS ============
+function fmtNum(n, dec=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function fmtMoneda(n, moneda, dec=2) {
+  if (!n) return '0';
+  const pref = moneda === 'U$S' ? 'US$ ' : (moneda === '$' ? '$ ' : (moneda+' '));
+  return pref + fmtNum(n, dec);
+}
+function fmtFecha(v) {
+  if (!v) return '—';
+  if (v instanceof Date) return v.toLocaleDateString('es-AR');
+  if (typeof v === 'number') { // Excel serial
+    const d = new Date((v - 25569) * 86400 * 1000);
+    return d.toLocaleDateString('es-AR');
+  }
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    if (!isNaN(d)) return d.toLocaleDateString('es-AR');
+  }
+  return String(v);
+}
+function monedaClass(m) {
+  if (m === 'U$S') return 'usd';
+  if (m === '$') return 'ars';
+  return 'other';
+}
+function toast(msg, tipo='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast active ' + tipo;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ============ PROCESAR EXCEL ============
+function procesarArchivo(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+      if (!wb.Sheets['VENTAS IF']) {
+        toast('No se encontró la hoja VENTAS IF', 'error');
+        return;
+      }
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets['VENTAS IF'], {header:1, raw:false, defval:null});
+      // rows[0] = headers, rows[1..] = data
+      // Columnas por índice:
+      // 0 A Fecha, 2 C Numero, 4 E Cuenta, 8 I Articulo, 10 K Moneda, 11 L Precio,
+      // 12 M Pedido, 13 N Entregado, 14 O P.Rem/Ped, 15 P Facturado,
+      // 16 Q Comisionista, 17 R Comisión (USD/tn o %), 20 U ComTotal,
+      // 22 W Comisiono, 23 X OkComi
+      const filas = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0) continue;
+        const comisiono = (r[22] || '').toString().trim().toUpperCase();
+        if (comisiono !== 'NO') continue;
+        const comi = (r[16] || '').toString().trim();
+        const moneda = (r[10] || '').toString().trim();
+        const okComi = (r[23] || '').toString().trim().toUpperCase();
+        const total = parseFloat(r[20]) || 0;
+        filas.push({
+          fecha: r[0],
+          numero: r[2],
+          cuenta: r[4] || '',
+          articulo: r[8] || '',
+          moneda: moneda || '(sin moneda)',
+          precio: parseFloat(r[11]) || 0,
+          pedido: parseFloat(r[12]) || 0,
+          entregado: parseFloat(r[13]) || 0,
+          facturado: parseFloat(r[15]) || 0,
+          comisionista: comi || '(sin comisionista)',
+          comisionPct: parseFloat(r[17]) || 0,
+          comisionTotal: total,
+          okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
+        });
+      }
+      DATA = { filas, fechaCarga: new Date().toISOString() };
+      guardar();
+      procesar();
+      render();
+      toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
+    } catch(err) {
+      console.error(err);
+      toast('Error al procesar archivo: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============ AGRUPAR ============
+function procesar() {
+  if (!DATA || !DATA.filas) { RESUMEN = []; return; }
+  const mapa = new Map();
+  for (const f of DATA.filas) {
+    const key = f.comisionista + '||' + f.moneda;
+    if (!mapa.has(key)) {
+      mapa.set(key, {
+        comisionista: f.comisionista,
+        moneda: f.moneda,
+        ok_count: 0, ok_total: 0,
+        no_count: 0, no_total: 0,
+        otro_count: 0, otro_total: 0,
+        filas: []
+      });
+    }
+    const g = mapa.get(key);
+    g.filas.push(f);
+    if (f.okComi === 'OK') { g.ok_count++; g.ok_total += f.comisionTotal; }
+    else if (f.okComi === 'NO') { g.no_count++; g.no_total += f.comisionTotal; }
+    else { g.otro_count++; g.otro_total += f.comisionTotal; }
+  }
+  RESUMEN = Array.from(mapa.values()).map(g => ({
+    ...g,
+    total: g.ok_total + g.no_total + g.otro_total,
+    total_count: g.ok_count + g.no_count + g.otro_count
+  }));
+}
+
+// ============ RENDER ============
+function render() {
+  if (!DATA || !DATA.filas || DATA.filas.length === 0) {
+    renderEmpty();
+    return;
+  }
+  renderSidebar();
+  renderTabla();
+  document.getElementById('filters').style.display = 'flex';
+  document.getElementById('btnExport').disabled = false;
+
+  const d = new Date(DATA.fechaCarga);
+  document.getElementById('lastUpdate').textContent = '↻ Actualizado: ' + d.toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
+}
+
+function renderEmpty() {
+  // Solo visible al inicio, no hacemos nada
+}
+
+function renderSidebar() {
+  // Totales globales por moneda
+  const porMoneda = new Map();
+  for (const g of RESUMEN) {
+    if (!porMoneda.has(g.moneda)) porMoneda.set(g.moneda, {ok:0, no:0, otro:0, count:0});
+    const m = porMoneda.get(g.moneda);
+    m.ok += g.ok_total; m.no += g.no_total; m.otro += g.otro_total;
+    m.count += g.total_count;
+  }
+  const monedasOrden = Array.from(porMoneda.keys()).sort((a,b)=> a==='U$S'?-1:(b==='U$S'?1:a.localeCompare(b)));
+  let html = '';
+  for (const mon of monedasOrden) {
+    const m = porMoneda.get(mon);
+    const tot = m.ok + m.no + m.otro;
+    html += `<div class="kpi-card total">
+      <div class="kpi-label">Total ${mon}</div>
+      <div class="kpi-value">${fmtMoneda(tot, mon, 0)}</div>
+      <div class="kpi-sub" style="margin-top:6px">
+        <span style="color:#6ee7b7">✓ OK: ${fmtMoneda(m.ok, mon, 0)}</span><br>
+        <span style="color:#fbbf24">⏳ Pend: ${fmtMoneda(m.no, mon, 0)}</span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('kpiCards').innerHTML = html;
+
+  const comisionistasUnicos = new Set(RESUMEN.map(g=>g.comisionista));
+  document.getElementById('kpiComisionistas').textContent = comisionistasUnicos.size;
+  document.getElementById('kpiNegocios').textContent = DATA.filas.length + ' negocios pendientes';
+
+  // Opciones filtro moneda
+  const sel = document.getElementById('monedaFilter');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' + monedasOrden.map(m=>`<option value="${m}">${m}</option>`).join('');
+  sel.value = actual;
+}
+
+function renderTabla() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const fMoneda = document.getElementById('monedaFilter').value;
+  const fEstado = document.getElementById('estadoFilter').value;
+
+  let filtrado = RESUMEN.filter(g => {
+    if (search && !g.comisionista.toLowerCase().includes(search)) return false;
+    if (fMoneda && g.moneda !== fMoneda) return false;
+    if (fEstado === 'ok' && g.ok_total <= 0) return false;
+    if (fEstado === 'pend' && g.no_total <= 0) return false;
+    return true;
+  });
+
+  // Ordenar
+  filtrado.sort((a,b) => {
+    let va = a[sortBy], vb = b[sortBy];
+    if (sortBy === 'comisionista' || sortBy === 'moneda') {
+      return sortDir==='asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    }
+    return sortDir === 'asc' ? (va - vb) : (vb - va);
+  });
+
+  document.getElementById('countChip').textContent = `${filtrado.length} ${filtrado.length===1?'renglón':'renglones'}`;
+
+  // Totales por moneda del filtrado
+  const totPorMon = new Map();
+  for (const g of filtrado) {
+    if (!totPorMon.has(g.moneda)) totPorMon.set(g.moneda, {ok:0,no:0,otro:0,ok_c:0,no_c:0});
+    const t = totPorMon.get(g.moneda);
+    t.ok += g.ok_total; t.no += g.no_total; t.otro += g.otro_total;
+    t.ok_c += g.ok_count; t.no_c += g.no_count;
+  }
+
+  const hdr = (key, label, extra='') => {
+    const cls = sortBy === key ? (sortDir==='asc'?'sorted-asc':'sorted-desc') : '';
+    return `<th class="${extra} ${cls}" onclick="cambiarSort('${key}')">${label}</th>`;
+  };
+
+  let html = `<div class="table-wrap"><table>
+    <thead><tr>
+      ${hdr('comisionista','Comisionista')}
+      ${hdr('moneda','Moneda','num')}
+      ${hdr('ok_count','✓ OK (neg)','num')}
+      ${hdr('ok_total','✓ OK (monto)','num')}
+      ${hdr('no_count','⏳ Pend (neg)','num')}
+      ${hdr('no_total','⏳ Pend (monto)','num')}
+      ${hdr('total','Total','num')}
+    </tr></thead>
+    <tbody>`;
+
+  if (filtrado.length === 0) {
+    html += `<tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8">Ningún resultado con los filtros actuales</td></tr>`;
+  } else {
+    for (let i = 0; i < filtrado.length; i++) {
+      const g = filtrado[i];
+      html += `<tr onclick="abrirModal(${RESUMEN.indexOf(g)})">
+        <td><strong>${g.comisionista}</strong></td>
+        <td class="num"><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></td>
+        <td class="num">${g.ok_count>0?g.ok_count:'<span class="amount-zero">—</span>'}</td>
+        <td class="num ${g.ok_total>0?'amount-ok':'amount-zero'}">${g.ok_total>0?fmtMoneda(g.ok_total,g.moneda):'—'}</td>
+        <td class="num">${g.no_count>0?g.no_count:'<span class="amount-zero">—</span>'}</td>
+        <td class="num ${g.no_total>0?'amount-pend':'amount-zero'}">${g.no_total>0?fmtMoneda(g.no_total,g.moneda):'—'}</td>
+        <td class="num amount-total">${fmtMoneda(g.total,g.moneda)}</td>
+      </tr>`;
+    }
+
+    // Filas de total por moneda
+    const monedas = Array.from(totPorMon.keys()).sort((a,b)=> a==='U$S'?-1:(b==='U$S'?1:a.localeCompare(b)));
+    for (const mon of monedas) {
+      const t = totPorMon.get(mon);
+      const totMon = t.ok + t.no + t.otro;
+      html += `<tr class="total-row">
+        <td>TOTAL ${mon}</td>
+        <td class="num"><span class="moneda-badge ${monedaClass(mon)}">${mon}</span></td>
+        <td class="num">${t.ok_c}</td>
+        <td class="num amount-ok">${fmtMoneda(t.ok,mon)}</td>
+        <td class="num">${t.no_c}</td>
+        <td class="num amount-pend">${fmtMoneda(t.no,mon)}</td>
+        <td class="num amount-total">${fmtMoneda(totMon,mon)}</td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('content').innerHTML = html;
+}
+
+function cambiarSort(col) {
+  if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortBy = col; sortDir = (col === 'comisionista' || col === 'moneda') ? 'asc' : 'desc'; }
+  renderTabla();
+}
+
+// ============ MODAL ============
+function abrirModal(idx) {
+  const g = RESUMEN[idx];
+  if (!g) return;
+  document.getElementById('modalTitle').textContent = g.comisionista;
+  document.getElementById('modalSub').innerHTML = `
+    <span><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></span>
+    <span>${g.total_count} negocios</span>
+    <span>Total: <strong>${fmtMoneda(g.total, g.moneda)}</strong></span>
+  `;
+  // Ordenar filas: primero OK, después NO, después ?; dentro por fecha desc
+  const filas = [...g.filas].sort((a,b) => {
+    const orden = {'OK':0,'NO':1,'?':2};
+    if (orden[a.okComi] !== orden[b.okComi]) return orden[a.okComi] - orden[b.okComi];
+    return 0;
+  });
+
+  let html = `<table>
+    <thead><tr>
+      <th>Estado</th>
+      <th>Fecha</th>
+      <th>Nº Pedido</th>
+      <th>Cliente</th>
+      <th>Artículo</th>
+      <th class="num">Pedido (tn)</th>
+      <th class="num">% / U$S tn</th>
+      <th class="num">Comisión total</th>
+    </tr></thead>
+    <tbody>`;
+  for (const f of filas) {
+    const pill = f.okComi === 'OK' ? `<span class="status-pill status-ok">OK</span>` :
+                 f.okComi === 'NO' ? `<span class="status-pill status-no">Pend</span>` :
+                 `<span class="status-pill" style="background:#f1f5f9;color:#64748b">?</span>`;
+    html += `<tr>
+      <td>${pill}</td>
+      <td>${fmtFecha(f.fecha)}</td>
+      <td>${f.numero || '—'}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.cuenta}">${f.cuenta}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.articulo}">${f.articulo}</td>
+      <td class="num">${fmtNum(f.pedido)}</td>
+      <td class="num">${fmtNum(f.comisionPct)}</td>
+      <td class="num amount-total">${fmtMoneda(f.comisionTotal, g.moneda)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById('modalBody').innerHTML = html;
+
+  document.getElementById('modalTotals').innerHTML = `
+    <span>✓ OK: <strong class="amount-ok">${fmtMoneda(g.ok_total, g.moneda)}</strong> (${g.ok_count})</span>
+    <span>⏳ Pend: <strong class="amount-pend">${fmtMoneda(g.no_total, g.moneda)}</strong> (${g.no_count})</span>
+  `;
+
+  document.getElementById('modal').classList.add('active');
+}
+
+function cerrarModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// ============ EXPORT ============
+function exportarExcel() {
+  if (!RESUMEN.length) { toast('No hay datos para exportar', 'error'); return; }
+
+  // Hoja 1: Resumen
+  const resumenRows = [
+    ['Comisionista', 'Moneda', 'Negocios OK', 'Monto OK para comisionar', 'Negocios Pendientes', 'Monto Pendiente', 'Total negocios', 'Total general']
+  ];
+  const ordenado = [...RESUMEN].sort((a,b) => a.comisionista.localeCompare(b.comisionista) || a.moneda.localeCompare(b.moneda));
+  for (const g of ordenado) {
+    resumenRows.push([
+      g.comisionista, g.moneda,
+      g.ok_count, g.ok_total,
+      g.no_count, g.no_total,
+      g.total_count, g.total
+    ]);
+  }
+  // Totales por moneda al final
+  const totPorMon = new Map();
+  for (const g of RESUMEN) {
+    if (!totPorMon.has(g.moneda)) totPorMon.set(g.moneda, {ok:0,no:0,otro:0,ok_c:0,no_c:0,c:0});
+    const t = totPorMon.get(g.moneda);
+    t.ok += g.ok_total; t.no += g.no_total; t.otro += g.otro_total;
+    t.ok_c += g.ok_count; t.no_c += g.no_count; t.c += g.total_count;
+  }
+  resumenRows.push([]);
+  for (const [mon, t] of totPorMon) {
+    resumenRows.push([`TOTAL ${mon}`, mon, t.ok_c, t.ok, t.no_c, t.no, t.c, t.ok + t.no + t.otro]);
+  }
+
+  // Hoja 2: Detalle
+  const detalleRows = [
+    ['Comisionista','Moneda','Estado','Fecha','Nº Pedido','Cliente','Artículo','Pedido (tn)','Precio','Com %/USD-tn','Comisión total']
+  ];
+  for (const g of ordenado) {
+    for (const f of g.filas) {
+      detalleRows.push([
+        g.comisionista, g.moneda, f.okComi,
+        fmtFecha(f.fecha), f.numero, f.cuenta, f.articulo,
+        f.pedido, f.precio, f.comisionPct, f.comisionTotal
+      ]);
+    }
+  }
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(resumenRows);
+  ws1['!cols'] = [{wch:40},{wch:8},{wch:12},{wch:20},{wch:18},{wch:18},{wch:14},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+  const ws2 = XLSX.utils.aoa_to_sheet(detalleRows);
+  ws2['!cols'] = [{wch:35},{wch:6},{wch:6},{wch:12},{wch:12},{wch:35},{wch:30},{wch:10},{wch:10},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle');
+
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Comisiones_pendientes_${fecha}.xlsx`);
+  toast('✓ Excel exportado', 'success');
+}
+
+// ============ EVENTOS ============
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+document.getElementById('fileInput2').addEventListener('change', e => {
+  if (e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+document.getElementById('searchInput').addEventListener('input', renderTabla);
+document.getElementById('monedaFilter').addEventListener('change', renderTabla);
+document.getElementById('estadoFilter').addEventListener('change', renderTabla);
+document.getElementById('btnExport').addEventListener('click', exportarExcel);
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') cerrarModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cerrarModal();
+});
+
+// ============ INIT ============
+cargar();
+</script>
+
 </div>
 
 <!-- TAB REPORTE SEMANAL -->
@@ -990,11 +1626,12 @@ var REP_DATA = {
   document.getElementById('rep-viernes').value=iso(vi);
 })();
 function switchTab(tab){
-  document.getElementById('tab-posicion').style.display  = tab==='posicion'  ? 'block' : 'none';
-  document.getElementById('tab-reporte').style.display   = tab==='reporte'   ? 'block' : 'none';
-  document.getElementById('tab-historial').style.display = tab==='historial' ? 'block' : 'none';
-  var tabs = {posicion:'#10b981', reporte:'#f59e0b', historial:'#8b5cf6'};
-  ['posicion','reporte','historial'].forEach(function(t){
+  document.getElementById('tab-posicion').style.display    = tab==='posicion'    ? 'block' : 'none';
+  document.getElementById('tab-reporte').style.display     = tab==='reporte'     ? 'block' : 'none';
+  document.getElementById('tab-historial').style.display   = tab==='historial'   ? 'block' : 'none';
+  document.getElementById('tab-comisiones').style.display  = tab==='comisiones'  ? 'block' : 'none';
+  var tabs = {posicion:'#10b981', reporte:'#f59e0b', historial:'#8b5cf6', comisiones:'#f97316'};
+  ['posicion','reporte','historial','comisiones'].forEach(function(t){
     var el = document.getElementById('btn-'+t);
     if (!el) return;
     el.style.borderColor = tab===t ? tabs[t] : '';
@@ -1285,6 +1922,431 @@ function renderHistorial(){
   }).join('');
   document.getElementById('hist-tbody').innerHTML = tbody;
 }
+
+
+
+// ============ ESTADO ============
+let COMIS_DATA = null;  // { filas: [...], fechaCarga: ISO }
+let COMIS_RESUMEN = []; // [{comisionista, moneda, ok_count, ok_total, no_count, no_total, total, filas: []}]
+let sortBy = 'total';
+let sortDir = 'desc';
+
+// ============ LOCALSTORAGE ============
+const STORAGE_KEY = 'if_comisiones_v1';
+function guardar() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) { console.warn('No se pudo guardar', e); }
+}
+function cargar() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { COMIS_DATA = JSON.parse(raw); procesar(); render(); }
+  } catch(e) { console.warn('No se pudo cargar', e); }
+}
+
+// ============ HELPERS ============
+function fmtNum(n, dec=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('es-AR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function fmtMoneda(n, moneda, dec=2) {
+  if (!n) return '0';
+  const pref = moneda === 'U$S' ? 'US$ ' : (moneda === '$' ? '$ ' : (moneda+' '));
+  return pref + fmtNum(n, dec);
+}
+function fmtFecha(v) {
+  if (!v) return '—';
+  if (v instanceof Date) return v.toLocaleDateString('es-AR');
+  if (typeof v === 'number') { // Excel serial
+    const d = new Date((v - 25569) * 86400 * 1000);
+    return d.toLocaleDateString('es-AR');
+  }
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    if (!isNaN(d)) return d.toLocaleDateString('es-AR');
+  }
+  return String(v);
+}
+function monedaClass(m) {
+  if (m === 'U$S') return 'usd';
+  if (m === '$') return 'ars';
+  return 'other';
+}
+function toast(msg, tipo='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast active ' + tipo;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ============ PROCESAR EXCEL ============
+function procesarArchivo(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+      if (!wb.Sheets['VENTAS IF']) {
+        toast('No se encontró la hoja VENTAS IF', 'error');
+        return;
+      }
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets['VENTAS IF'], {header:1, raw:false, defval:null});
+      // rows[0] = headers, rows[1..] = data
+      // Columnas por índice:
+      // 0 A Fecha, 2 C Numero, 4 E Cuenta, 8 I Articulo, 10 K Moneda, 11 L Precio,
+      // 12 M Pedido, 13 N Entregado, 14 O P.Rem/Ped, 15 P Facturado,
+      // 16 Q Comisionista, 17 R Comisión (USD/tn o %), 20 U ComTotal,
+      // 22 W Comisiono, 23 X OkComi
+      const filas = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0) continue;
+        const comisiono = (r[22] || '').toString().trim().toUpperCase();
+        if (comisiono !== 'NO') continue;
+        const comi = (r[16] || '').toString().trim();
+        const moneda = (r[10] || '').toString().trim();
+        const okComi = (r[23] || '').toString().trim().toUpperCase();
+        const total = parseFloat(r[20]) || 0;
+        filas.push({
+          fecha: r[0],
+          numero: r[2],
+          cuenta: r[4] || '',
+          articulo: r[8] || '',
+          moneda: moneda || '(sin moneda)',
+          precio: parseFloat(r[11]) || 0,
+          pedido: parseFloat(r[12]) || 0,
+          entregado: parseFloat(r[13]) || 0,
+          facturado: parseFloat(r[15]) || 0,
+          comisionista: comi || '(sin comisionista)',
+          comisionPct: parseFloat(r[17]) || 0,
+          comisionTotal: total,
+          okComi: okComi === 'OK' ? 'OK' : (okComi === 'NO' ? 'NO' : '?')
+        });
+      }
+      COMIS_DATA = { filas, fechaCarga: new Date().toISOString() };
+      guardar();
+      procesar();
+      render();
+      toast(`✓ ${filas.length} negocios pendientes cargados`, 'success');
+    } catch(err) {
+      console.error(err);
+      toast('Error al procesar archivo: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============ AGRUPAR ============
+function procesar() {
+  if (!COMIS_DATA || !COMIS_DATA.filas) { COMIS_RESUMEN = []; return; }
+  const mapa = new Map();
+  for (const f of COMIS_DATA.filas) {
+    const key = f.comisionista + '||' + f.moneda;
+    if (!mapa.has(key)) {
+      mapa.set(key, {
+        comisionista: f.comisionista,
+        moneda: f.moneda,
+        ok_count: 0, ok_total: 0,
+        no_count: 0, no_total: 0,
+        otro_count: 0, otro_total: 0,
+        filas: []
+      });
+    }
+    const g = mapa.get(key);
+    g.filas.push(f);
+    if (f.okComi === 'OK') { g.ok_count++; g.ok_total += f.comisionTotal; }
+    else if (f.okComi === 'NO') { g.no_count++; g.no_total += f.comisionTotal; }
+    else { g.otro_count++; g.otro_total += f.comisionTotal; }
+  }
+  COMIS_RESUMEN = Array.from(mapa.values()).map(g => ({
+    ...g,
+    total: g.ok_total + g.no_total + g.otro_total,
+    total_count: g.ok_count + g.no_count + g.otro_count
+  }));
+}
+
+// ============ RENDER ============
+function render() {
+  if (!COMIS_DATA || !COMIS_DATA.filas || COMIS_DATA.filas.length === 0) {
+    renderEmpty();
+    return;
+  }
+  renderSidebar();
+  renderTabla();
+  document.getElementById('filters').style.display = 'flex';
+  document.getElementById('btnExport').disabled = false;
+
+  const d = new Date(DATA.fechaCarga);
+  document.getElementById('lastUpdate').textContent = '↻ Actualizado: ' + d.toLocaleString('es-AR', {dateStyle:'short', timeStyle:'short'});
+}
+
+function renderEmpty() {
+  // Solo visible al inicio, no hacemos nada
+}
+
+function renderSidebar() {
+  // Totales globales por moneda
+  const porMoneda = new Map();
+  for (const g of RESUMEN) {
+    if (!porMoneda.has(g.moneda)) porMoneda.set(g.moneda, {ok:0, no:0, otro:0, count:0});
+    const m = porMoneda.get(g.moneda);
+    m.ok += g.ok_total; m.no += g.no_total; m.otro += g.otro_total;
+    m.count += g.total_count;
+  }
+  const monedasOrden = Array.from(porMoneda.keys()).sort((a,b)=> a==='U$S'?-1:(b==='U$S'?1:a.localeCompare(b)));
+  let html = '';
+  for (const mon of monedasOrden) {
+    const m = porMoneda.get(mon);
+    const tot = m.ok + m.no + m.otro;
+    html += `<div class="kpi-card total">
+      <div class="kpi-label">Total ${mon}</div>
+      <div class="kpi-value">${fmtMoneda(tot, mon, 0)}</div>
+      <div class="kpi-sub" style="margin-top:6px">
+        <span style="color:#6ee7b7">✓ OK: ${fmtMoneda(m.ok, mon, 0)}</span><br>
+        <span style="color:#fbbf24">⏳ Pend: ${fmtMoneda(m.no, mon, 0)}</span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('kpiCards').innerHTML = html;
+
+  const comisionistasUnicos = new Set(COMIS_RESUMEN.map(g=>g.comisionista));
+  document.getElementById('kpiComisionistas').textContent = comisionistasUnicos.size;
+  document.getElementById('kpiNegocios').textContent = COMIS_DATA.filas.length + ' negocios pendientes';
+
+  // Opciones filtro moneda
+  const sel = document.getElementById('monedaFilter');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' + monedasOrden.map(m=>`<option value="${m}">${m}</option>`).join('');
+  sel.value = actual;
+}
+
+function renderTabla() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const fMoneda = document.getElementById('monedaFilter').value;
+  const fEstado = document.getElementById('estadoFilter').value;
+
+  let filtrado = COMIS_RESUMEN.filter(g => {
+    if (search && !g.comisionista.toLowerCase().includes(search)) return false;
+    if (fMoneda && g.moneda !== fMoneda) return false;
+    if (fEstado === 'ok' && g.ok_total <= 0) return false;
+    if (fEstado === 'pend' && g.no_total <= 0) return false;
+    return true;
+  });
+
+  // Ordenar
+  filtrado.sort((a,b) => {
+    let va = a[sortBy], vb = b[sortBy];
+    if (sortBy === 'comisionista' || sortBy === 'moneda') {
+      return sortDir==='asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    }
+    return sortDir === 'asc' ? (va - vb) : (vb - va);
+  });
+
+  document.getElementById('countChip').textContent = `${filtrado.length} ${filtrado.length===1?'renglón':'renglones'}`;
+
+  // Totales por moneda del filtrado
+  const totPorMon = new Map();
+  for (const g of filtrado) {
+    if (!totPorMon.has(g.moneda)) totPorMon.set(g.moneda, {ok:0,no:0,otro:0,ok_c:0,no_c:0});
+    const t = totPorMon.get(g.moneda);
+    t.ok += g.ok_total; t.no += g.no_total; t.otro += g.otro_total;
+    t.ok_c += g.ok_count; t.no_c += g.no_count;
+  }
+
+  const hdr = (key, label, extra='') => {
+    const cls = sortBy === key ? (sortDir==='asc'?'sorted-asc':'sorted-desc') : '';
+    return `<th class="${extra} ${cls}" onclick="cambiarSort('${key}')">${label}</th>`;
+  };
+
+  let html = `<div class="table-wrap"><table>
+    <thead><tr>
+      ${hdr('comisionista','Comisionista')}
+      ${hdr('moneda','Moneda','num')}
+      ${hdr('ok_count','✓ OK (neg)','num')}
+      ${hdr('ok_total','✓ OK (monto)','num')}
+      ${hdr('no_count','⏳ Pend (neg)','num')}
+      ${hdr('no_total','⏳ Pend (monto)','num')}
+      ${hdr('total','Total','num')}
+    </tr></thead>
+    <tbody>`;
+
+  if (filtrado.length === 0) {
+    html += `<tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8">Ningún resultado con los filtros actuales</td></tr>`;
+  } else {
+    for (let i = 0; i < filtrado.length; i++) {
+      const g = filtrado[i];
+      html += `<tr onclick="abrirModal(${COMIS_RESUMEN.indexOf(g)})">
+        <td><strong>${g.comisionista}</strong></td>
+        <td class="num"><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></td>
+        <td class="num">${g.ok_count>0?g.ok_count:'<span class="amount-zero">—</span>'}</td>
+        <td class="num ${g.ok_total>0?'amount-ok':'amount-zero'}">${g.ok_total>0?fmtMoneda(g.ok_total,g.moneda):'—'}</td>
+        <td class="num">${g.no_count>0?g.no_count:'<span class="amount-zero">—</span>'}</td>
+        <td class="num ${g.no_total>0?'amount-pend':'amount-zero'}">${g.no_total>0?fmtMoneda(g.no_total,g.moneda):'—'}</td>
+        <td class="num amount-total">${fmtMoneda(g.total,g.moneda)}</td>
+      </tr>`;
+    }
+
+    // Filas de total por moneda
+    const monedas = Array.from(totPorMon.keys()).sort((a,b)=> a==='U$S'?-1:(b==='U$S'?1:a.localeCompare(b)));
+    for (const mon of monedas) {
+      const t = totPorMon.get(mon);
+      const totMon = t.ok + t.no + t.otro;
+      html += `<tr class="total-row">
+        <td>TOTAL ${mon}</td>
+        <td class="num"><span class="moneda-badge ${monedaClass(mon)}">${mon}</span></td>
+        <td class="num">${t.ok_c}</td>
+        <td class="num amount-ok">${fmtMoneda(t.ok,mon)}</td>
+        <td class="num">${t.no_c}</td>
+        <td class="num amount-pend">${fmtMoneda(t.no,mon)}</td>
+        <td class="num amount-total">${fmtMoneda(totMon,mon)}</td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('content').innerHTML = html;
+}
+
+function cambiarSort(col) {
+  if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortBy = col; sortDir = (col === 'comisionista' || col === 'moneda') ? 'asc' : 'desc'; }
+  renderTabla();
+}
+
+// ============ MODAL ============
+function abrirModal(idx) {
+  const g = RESUMEN[idx];
+  if (!g) return;
+  document.getElementById('modalTitle').textContent = g.comisionista;
+  document.getElementById('modalSub').innerHTML = `
+    <span><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></span>
+    <span>${g.total_count} negocios</span>
+    <span>Total: <strong>${fmtMoneda(g.total, g.moneda)}</strong></span>
+  `;
+  // Ordenar filas: primero OK, después NO, después ?; dentro por fecha desc
+  const filas = [...g.filas].sort((a,b) => {
+    const orden = {'OK':0,'NO':1,'?':2};
+    if (orden[a.okComi] !== orden[b.okComi]) return orden[a.okComi] - orden[b.okComi];
+    return 0;
+  });
+
+  let html = `<table>
+    <thead><tr>
+      <th>Estado</th>
+      <th>Fecha</th>
+      <th>Nº Pedido</th>
+      <th>Cliente</th>
+      <th>Artículo</th>
+      <th class="num">Pedido (tn)</th>
+      <th class="num">% / U$S tn</th>
+      <th class="num">Comisión total</th>
+    </tr></thead>
+    <tbody>`;
+  for (const f of filas) {
+    const pill = f.okComi === 'OK' ? `<span class="status-pill status-ok">OK</span>` :
+                 f.okComi === 'NO' ? `<span class="status-pill status-no">Pend</span>` :
+                 `<span class="status-pill" style="background:#f1f5f9;color:#64748b">?</span>`;
+    html += `<tr>
+      <td>${pill}</td>
+      <td>${fmtFecha(f.fecha)}</td>
+      <td>${f.numero || '—'}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.cuenta}">${f.cuenta}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.articulo}">${f.articulo}</td>
+      <td class="num">${fmtNum(f.pedido)}</td>
+      <td class="num">${fmtNum(f.comisionPct)}</td>
+      <td class="num amount-total">${fmtMoneda(f.comisionTotal, g.moneda)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById('modalBody').innerHTML = html;
+
+  document.getElementById('modalTotals').innerHTML = `
+    <span>✓ OK: <strong class="amount-ok">${fmtMoneda(g.ok_total, g.moneda)}</strong> (${g.ok_count})</span>
+    <span>⏳ Pend: <strong class="amount-pend">${fmtMoneda(g.no_total, g.moneda)}</strong> (${g.no_count})</span>
+  `;
+
+  document.getElementById('modal').classList.add('active');
+}
+
+function cerrarModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// ============ EXPORT ============
+function exportarExcel() {
+  if (!COMIS_RESUMEN.length) { toast('No hay datos para exportar', 'error'); return; }
+
+  // Hoja 1: Resumen
+  const resumenRows = [
+    ['Comisionista', 'Moneda', 'Negocios OK', 'Monto OK para comisionar', 'Negocios Pendientes', 'Monto Pendiente', 'Total negocios', 'Total general']
+  ];
+  const ordenado = [...COMIS_RESUMEN].sort((a,b) => a.comisionista.localeCompare(b.comisionista) || a.moneda.localeCompare(b.moneda));
+  for (const g of ordenado) {
+    resumenRows.push([
+      g.comisionista, g.moneda,
+      g.ok_count, g.ok_total,
+      g.no_count, g.no_total,
+      g.total_count, g.total
+    ]);
+  }
+  // Totales por moneda al final
+  const totPorMon = new Map();
+  for (const g of RESUMEN) {
+    if (!totPorMon.has(g.moneda)) totPorMon.set(g.moneda, {ok:0,no:0,otro:0,ok_c:0,no_c:0,c:0});
+    const t = totPorMon.get(g.moneda);
+    t.ok += g.ok_total; t.no += g.no_total; t.otro += g.otro_total;
+    t.ok_c += g.ok_count; t.no_c += g.no_count; t.c += g.total_count;
+  }
+  resumenRows.push([]);
+  for (const [mon, t] of totPorMon) {
+    resumenRows.push([`TOTAL ${mon}`, mon, t.ok_c, t.ok, t.no_c, t.no, t.c, t.ok + t.no + t.otro]);
+  }
+
+  // Hoja 2: Detalle
+  const detalleRows = [
+    ['Comisionista','Moneda','Estado','Fecha','Nº Pedido','Cliente','Artículo','Pedido (tn)','Precio','Com %/USD-tn','Comisión total']
+  ];
+  for (const g of ordenado) {
+    for (const f of g.filas) {
+      detalleRows.push([
+        g.comisionista, g.moneda, f.okComi,
+        fmtFecha(f.fecha), f.numero, f.cuenta, f.articulo,
+        f.pedido, f.precio, f.comisionPct, f.comisionTotal
+      ]);
+    }
+  }
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(resumenRows);
+  ws1['!cols'] = [{wch:40},{wch:8},{wch:12},{wch:20},{wch:18},{wch:18},{wch:14},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+  const ws2 = XLSX.utils.aoa_to_sheet(detalleRows);
+  ws2['!cols'] = [{wch:35},{wch:6},{wch:6},{wch:12},{wch:12},{wch:35},{wch:30},{wch:10},{wch:10},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detalle');
+
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Comisiones_pendientes_${fecha}.xlsx`);
+  toast('✓ Excel exportado', 'success');
+}
+
+// ============ EVENTOS ============
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+document.getElementById('fileInput2').addEventListener('change', e => {
+  if (e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+document.getElementById('searchInput').addEventListener('input', renderTabla);
+document.getElementById('monedaFilter').addEventListener('change', renderTabla);
+document.getElementById('estadoFilter').addEventListener('change', renderTabla);
+document.getElementById('btnExport').addEventListener('click', exportarExcel);
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') cerrarModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cerrarModal();
+});
+
+// ============ INIT ============
+cargar();
 
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrar(); cerrarModal('mbg-upload'); cerrarModal('mbg-fijar') } });
