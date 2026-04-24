@@ -977,18 +977,43 @@ function parseReporteDesdeWB(wb){
   function nv(v){try{return parseFloat(String(v||'').replace(',','.').trim())||0}catch(e){return 0}}
   function cl(v){var s=String(v||'').trim();return(s==='nan'||s==='undefined')?'':s}
   function toRows(sh){var s=wb.Sheets[sh]||wb.Sheets[Object.keys(wb.Sheets).find(function(k){return k.toLowerCase().includes(sh.toLowerCase())})||''];return s?XLSX.utils.sheet_to_json(s,{defval:'',raw:false}):[]}
+  function toIso(v){
+    if(!v)return '';
+    var s=String(v).trim();
+    // Ya es YYYY-MM-DD
+    if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
+    // Formato D/M/YY o M/D/YY o D/M/YYYY
+    var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if(m){
+      var y=parseInt(m[3]); if(y<100)y+=2000;
+      // xlsx.js usa M/D/YY en locale en-US
+      var mo=String(parseInt(m[1])).padStart(2,'0');
+      var dd=String(parseInt(m[2])).padStart(2,'0');
+      return y+'-'+mo+'-'+dd;
+    }
+    return s.substring(0,10);
+  }
+  function getCol(r,names){for(var i=0;i<names.length;i++){if(r[names[i]]!==undefined&&r[names[i]]!=='')return cl(r[names[i]])}return ''}
   var EXK=['SILO BOLSA','BIG BAG LINER','BIDON','FLETE','INTERES','COADYUV'];
   function excl(art){var u=(art||'').toUpperCase();return EXK.some(function(k){return u.includes(k)})}
   function toTn(cant,art){var c=nv(cant);return((art||'').toLowerCase().includes('litro')||(art||'').toLowerCase().includes('(lts)'))?c/1000:c}
   var rv=toRows('Venta'),rc=toRows('Compra');
-  var ventas=rv.filter(function(r){return r['Fecha']&&!excl(r['Articulos']||r['Articulo']||'')}).map(function(r){
-    var art=cl(r['Articulos']||r['Articulo']||'');
-    return {fecha:cl(r['Fecha']).substring(0,10),art:art,tn:toTn(r['Cantidad'],art),precio:nv(r['Precio']),modal:cl(r['Modalidades']||r['Modalidad']||''),comis:cl(r['Comisionistas']||r['Comisionista']||'')||'Sin comisionista',destino:cl(r['Circuito']||'')};
-  });
-  var compras=rc.filter(function(r){return r['Fecha']&&!excl(r['Articulo']||'')}).map(function(r){
-    var art=cl(r['Articulo']||'');
-    return {fecha:cl(r['Fecha']).substring(0,10),art:art,tn:toTn(r['Cantidad'],art),precio:nv(r['Precio']),modal:cl(r['Modalidad']||''),prov:cl(r['Proveedor']||''),puerto:cl(r['LugarDeRecepcion']||'')||'Sin especificar'};
-  });
+  var ventas=rv.filter(function(r){
+    var art=getCol(r,['Articulos','Articulo','Artículos','ARTICULO']);
+    return r['Fecha']&&art&&!excl(art);
+  }).map(function(r){
+    var art=getCol(r,['Articulos','Articulo','Artículos','ARTICULO']);
+    var fecha=toIso(r['Fecha']);
+    return {fecha:fecha,art:art,tn:toTn(r['Cantidad'],art),precio:nv(r['Precio']),modal:getCol(r,['Modalidades','Modalidad','MODALIDAD']),comis:getCol(r,['Comisionistas','Comisionista','COMISIONISTA'])||'Sin comisionista',destino:cl(r['Circuito']||'')};
+  }).filter(function(r){return r.fecha&&r.fecha>='2000-01-01'});
+  var compras=rc.filter(function(r){
+    var art=getCol(r,['Articulo','Artículo','ARTICULO']);
+    return r['Fecha']&&art&&!excl(art);
+  }).map(function(r){
+    var art=getCol(r,['Articulo','Artículo','ARTICULO']);
+    var fecha=toIso(r['Fecha']);
+    return {fecha:fecha,art:art,tn:toTn(r['Cantidad'],art),precio:nv(r['Precio']),modal:cl(r['Modalidad']||''),prov:cl(r['Proveedor']||''),puerto:cl(r['LugarDeRecepcion']||'')||'Sin especificar'};
+  }).filter(function(r){return r.fecha&&r.fecha>='2000-01-01'});
   REP_DATA={ventas:ventas,compras:compras,calculado:false};
   calcReporte();
 }
