@@ -426,12 +426,15 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <!-- Semana selector -->
   <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
     <div style="font-size:14px;font-weight:700">Semana de análisis:</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <label style="font-size:12px;color:#9ca3af">Lunes:</label>
+    <button onclick="navSemana(-1)" style="padding:5px 14px;background:#0d3328;border:1px solid #1e5240;border-radius:6px;color:#4db896;font-size:16px;cursor:pointer;font-family:inherit">◀</button>
+    <div style="display:flex;align-items:center;gap:6px">
+      <label style="font-size:11px;color:#9ca3af">Del</label>
       <input type="date" id="rep-lunes" style="padding:6px 10px;background:#0d3328;border:1px solid #1e5240;border-radius:6px;color:#e2e8f0;font-size:13px;font-family:inherit">
-      <label style="font-size:12px;color:#9ca3af">Viernes:</label>
+      <label style="font-size:11px;color:#9ca3af">al</label>
       <input type="date" id="rep-viernes" style="padding:6px 10px;background:#0d3328;border:1px solid #1e5240;border-radius:6px;color:#e2e8f0;font-size:13px;font-family:inherit">
     </div>
+    <button onclick="navSemana(1)" style="padding:5px 14px;background:#0d3328;border:1px solid #1e5240;border-radius:6px;color:#4db896;font-size:16px;cursor:pointer;font-family:inherit">▶</button>
+    <div id="rep-semana-label" style="font-size:12px;color:#4db896;font-weight:600;min-width:140px"></div>
     <button onclick="calcReporte()" style="padding:8px 18px;background:#1a9168;color:#022c22;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚡ Calcular</button>
     <div style="font-size:11px;color:#6b7280;flex:1">Subí el archivo actualizado en "↑ Actualizar" para ver la semana más reciente</div>
   </div>
@@ -1273,6 +1276,8 @@ function calcReporte(){
   var lunes=document.getElementById('rep-lunes').value;
   var viernes=document.getElementById('rep-viernes').value;
   if(!lunes||!viernes)return;
+  var lbl=document.getElementById('rep-semana-label');
+  if(lbl){var dl=lunes.split('-'),dv=viernes.split('-');lbl.textContent=dl[2]+'/'+dl[1]+' — '+dv[2]+'/'+dv[1]+'/'+dv[0];}
   var anio=parseInt(viernes.substring(0,4)),anioAnt=anio-1;
   var vSem=REP_DATA.ventas.filter(function(r){return r.fecha>=lunes&&r.fecha<=viernes});
   var vAnio=REP_DATA.ventas.filter(function(r){return r.fecha>=(String(anio)+'-01-01')&&r.fecha<=viernes});
