@@ -1641,11 +1641,12 @@ function comis_procesar() {
   if (!COMIS_DATA || !COMIS_DATA.filas) { COMIS_RESUMEN = []; return; }
   const mapa = new Map();
   for (const f of COMIS_DATA.filas) {
-    const key = f.comisionista + '||' + f.moneda;
+    const key = f.comisionista + '||' + f.moneda + '||' + f.empresa;
     if (!mapa.has(key)) {
       mapa.set(key, {
         comisionista: f.comisionista,
         moneda: f.moneda,
+        empresa: f.empresa,
         ok_count: 0, ok_total: 0,
         no_count: 0, no_total: 0,
         otro_count: 0, otro_total: 0,
@@ -1776,7 +1777,7 @@ function comis_renderTabla() {
     for (let i = 0; i < filtrado.length; i++) {
       const g = filtrado[i];
       html += `<tr onclick="comis_abrirModal(${COMIS_RESUMEN.indexOf(g)})">
-        <td><strong>${g.comisionista}</strong></td>
+        <td><span style="background:${g.empresa==='IF'?'#064e3b':'#1e3a5f'};color:${g.empresa==='IF'?'#10b981':'#60a5fa'};padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;display:inline-block;margin-right:6px">${g.empresa}</span><strong>${g.comisionista}</strong></td>
         <td class="num"><span class="moneda-badge ${monedaClass(g.moneda)}">${g.moneda}</span></td>
         <td class="num">${g.ok_count>0?g.ok_count:'<span class="amount-zero">—</span>'}</td>
         <td class="num ${g.ok_total>0?'amount-ok':'amount-zero'}">${g.ok_total>0?fmtMoneda(g.ok_total,g.moneda):'—'}</td>
