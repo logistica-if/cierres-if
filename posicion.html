@@ -1691,39 +1691,55 @@ function comis_renderEmpty() {
 }
 
 function comis_renderSidebar() {
-  // Totales globales por moneda
-  const porMoneda = new Map();
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+
+  // Totales por empresa + moneda
+  const porEmpresa = {};
   for (const g of COMIS_RESUMEN) {
-    if (!porMoneda.has(g.moneda)) porMoneda.set(g.moneda, {ok:0, no:0, otro:0, count:0});
-    const m = porMoneda.get(g.moneda);
-    m.ok += g.ok_total; m.no += g.no_total; m.otro += g.otro_total;
-    m.count += g.total_count;
+    const emp = g.empresa || 'IF';
+    if (!porEmpresa[emp]) porEmpresa[emp] = {};
+    if (!porEmpresa[emp][g.moneda]) porEmpresa[emp][g.moneda] = {ok:0, pend:0, count:0};
+    porEmpresa[emp][g.moneda].ok    += g.ok_total;
+    porEmpresa[emp][g.moneda].pend  += g.no_total + g.otro_total;
+    porEmpresa[emp][g.moneda].count += g.total_count;
   }
-  const monedasOrden = Array.from(porMoneda.keys()).sort((a,b)=> a==='U$S'?-1:(b==='U$S'?1:a.localeCompare(b)));
-  let html = '';
-  for (const mon of monedasOrden) {
-    const m = porMoneda.get(mon);
-    const tot = m.ok + m.no + m.otro;
-    html += `<div class="kpi-card total">
-      <div class="kpi-label">Total ${mon}</div>
-      <div class="kpi-value">${fmtMoneda(tot, mon, 0)}</div>
-      <div class="kpi-sub" style="margin-top:6px">
-        <span style="color:#6ee7b7">✓ OK: ${fmtMoneda(m.ok, mon, 0)}</span><br>
-        <span style="color:#fbbf24">⏳ Pend: ${fmtMoneda(m.no, mon, 0)}</span>
-      </div>
-    </div>`;
+
+  let html2 = '';
+  const empColors = {IF:'#10b981', HIRYO:'#60a5fa'};
+  const empBg     = {IF:'#064e3b', HIRYO:'#1e3a5f'};
+
+  for (const [emp, monedas] of Object.entries(porEmpresa).sort()) {
+    const color = empColors[emp] || '#9ca3af';
+    const bg    = empBg[emp]    || '#1f2937';
+    html2 += `<div style="margin-bottom:12px">
+      <div style="background:${bg};border:1px solid ${color};border-radius:6px;padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${emp}</div>`;
+    for (const [mon, d] of Object.entries(monedas)) {
+      html2 += `<div style="margin-bottom:5px">
+        <div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:2px">${mon}</div>
+        <div style="font-size:13px;font-weight:700;font-family:monospace;color:${color}">${mon} ${fmtNum(d.ok+d.pend)}</div>
+        <div style="font-size:10px;margin-top:1px">
+          <span style="color:#10b981">✓ ${mon} ${fmtNum(d.ok)}</span>
+          <span style="color:#f59e0b;margin-left:6px">⏳ ${mon} ${fmtNum(d.pend)}</span>
+        </div>
+        <div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:1px">${d.count} negocios</div>
+      </div>`;
+    }
+    html2 += `</div></div>`;
   }
-  document.getElementById('kpiCards').innerHTML = html;
 
-  const comisionistasUnicos = new Set(COMIS_RESUMEN.map(g=>g.comisionista));
-  document.getElementById('kpiComisionistas').textContent = comisionistasUnicos.size;
-  document.getElementById('kpiNegocios').textContent = COMIS_DATA.filas.length + ' negocios pendientes';
+  if (!html2) html2 = '<div style="color:#6b7280;font-size:12px;text-align:center;padding:20px">Sin datos</div>';
 
-  // Opciones filtro moneda
-  const sel = document.getElementById('monedaFilter');
-  const actual = sel.value;
-  sel.innerHTML = '<option value="">Todas</option>' + monedasOrden.map(m=>`<option value="${m}">${m}</option>`).join('');
-  sel.value = actual;
+  // Buscar el contenedor de resumen en el sidebar
+  const resEl = sb.querySelector('.resumen-sidebar') || sb;
+  // Insertar al principio del sidebar
+  const existing = sb.querySelector('.comis-emp-summary');
+  if (existing) existing.remove();
+  const wrapper = document.createElement('div');
+  wrapper.className = 'comis-emp-summary';
+  wrapper.innerHTML = html2;
+  sb.insertBefore(wrapper, sb.firstChild);
 }
 
 function comis_renderTabla() {
