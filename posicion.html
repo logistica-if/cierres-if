@@ -133,6 +133,7 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
   <button class="hbtn" id="btn-reporte" onclick="switchTab('reporte')">📊 Reporte</button>
   <button class="hbtn" id="btn-posicion" onclick="switchTab('posicion')" style="border-color:#135845;color:#1a9168">📦 Posición</button>
   <button class="hbtn" onclick="descargarSnapshot()">💾 Guardar</button>
+  <button class="hbtn" onclick="generarWhatsApp()" style="background:rgba(37,211,102,.12);border-color:#25d366;color:#25d366">📱 WhatsApp</button>
   <div class="hdr-date" id="hdr-date"></div>
 </div>
 
@@ -1970,6 +1971,210 @@ document.addEventListener('keydown', e => {
 // ============ INIT ============
 comis_// init comisiones
 try { comis_cargar(); } catch(e) {}
+
+
+// ── GENERAR REPORTE WHATSAPP ────────────────────────────────
+function generarWhatsApp() {
+  var lunes   = (document.getElementById('rep-lunes')   || {}).value || '';
+  var viernes = (document.getElementById('rep-viernes') || {}).value || '';
+
+  // Deduplicar posición — primera entrada de cada artículo
+  var seen = new Set();
+  var posDedup = [];
+  POSICION.forEach(function(p){
+    var k = p.art.trim().toUpperCase();
+    if (!seen.has(k)) { seen.add(k); posDedup.push(p); }
+  });
+
+  // Ureas agrupadas
+  var GRUPOS = [
+    {label:'UREA 46-0-0',          fn:function(a){return a.includes('UREA GRANULADA')||(a.includes('UREA')&&a.includes('46'))}},
+    {label:'UREA INDUSTRIAL',      fn:function(a){return a.includes('UREA INDUSTRIAL')}},
+    {label:'UREA AUTOMOTOR SOLIDA',fn:function(a){return a.includes('AUTOMOTOR')&&a.includes('UREA')}},
+    {label:'UREA PERLADA',         fn:function(a){return a.includes('UREA PERLADA')}},
+  ];
+  var ureas = [];
+  GRUPOS.forEach(function(g){
+    var arts = posDedup.filter(function(p){ return !p.es_fab && g.fn(p.art.trim().toUpperCase()) });
+    if (!arts.length) return;
+    var pos_t=arts.reduce(function(s,p){return s+p.pos},0);
+    var fijar=arts.reduce(function(s,p){return s+(p.a_fijar||0)},0);
+    var nc=0,dc=0,nv=0,dv=0;
+    arts.forEach(function(p){
+      if(p.ppp_c&&p.cp>0){nc+=p.ppp_c*p.cp;dc+=p.cp}
+      if(p.ppp_v&&p.vp>0){nv+=p.ppp_v*p.vp;dv+=p.vp}
+    });
+    ureas.push({label:g.label,pos:pos_t,fijar:fijar,
+      ppp_c:dc>0?Math.round(nc/dc):null,ppp_v:dv>0?Math.round(nv/dv):null});
+  });
+
+  // Historial posición
+  var hist = posDedup.filter(function(p){
+    return !p.es_fab && (p.pos<=-0.5||p.pos>=20);
+  }).sort(function(a,b){return a.pos-b.pos});
+
+  // KPIs semana
+  var vSem=[],cSem=[],v26=[],c26=[];
+  if (REP_DATA && REP_DATA.ventas && lunes && viernes) {
+    var anio = parseInt(viernes.substring(0,4));
+    vSem=REP_DATA.ventas.filter(function(r){return r.fecha>=lunes&&r.fecha<=viernes});
+    cSem=REP_DATA.compras.filter(function(r){return r.fecha>=lunes&&r.fecha<=viernes});
+    v26 =REP_DATA.ventas.filter(function(r){return r.fecha>=(anio+'-01-01')&&r.fecha<=viernes});
+    c26 =REP_DATA.compras.filter(function(r){return r.fecha>=(anio+'-01-01')&&r.fecha<=viernes});
+  }
+  var vTn=vSem.reduce(function(s,r){return s+r.tn},0);
+  var cTn=cSem.reduce(function(s,r){return s+r.tn},0);
+  var v26Tn=v26.reduce(function(s,r){return s+r.tn},0);
+  var c26Tn=c26.reduce(function(s,r){return s+r.tn},0);
+  var vPPP=vTn>0?vSem.reduce(function(s,r){return s+r.tn*r.precio},0)/vTn:0;
+  var cPPP=cTn>0?cSem.reduce(function(s,r){return s+r.tn*r.precio},0)/cTn:0;
+  function grpBy(arr,idx){
+    var d={};arr.forEach(function(r){d[r[idx]]=(d[r[idx]]||0)+r.tn});
+    return Object.entries(d).sort(function(a,b){return b[1]-a[1]}).slice(0,7);
+  }
+  var byArtV=grpBy(vSem,'art'), byArtC=grpBy(cSem,'art');
+
+  // Comisiones por empresa
+  var comisData = {};
+  if (COMIS_DATA && COMIS_DATA.filas) {
+    COMIS_DATA.filas.forEach(function(f){
+      var emp=f.empresa||'IF', mon=f.moneda;
+      if(!comisData[emp]) comisData[emp]={};
+      if(!comisData[emp][mon]) comisData[emp][mon]={total:0,ok:0};
+      comisData[emp][mon].total+=f.comisionTotal;
+      if(f.okComi==='OK') comisData[emp][mon].ok+=f.comisionTotal;
+    });
+  }
+
+  function fw(v,d){ d=d||0; if(v==null)return '—'; return parseFloat(v).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function we(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+  // Label semana
+  var semLabel='';
+  if(lunes&&viernes){
+    var dl=lunes.split('-'),dv2=viernes.split('-');
+    semLabel=dl[2]+'/'+dl[1]+' al '+dv2[2]+'/'+dv2[1]+'/'+dv2[0];
+  }
+
+  // ── HTML ──────────────────────────────────────────────────
+  var CSS = '<style>' +
+    '*{box-sizing:border-box;margin:0;padding:0}' +
+    'body{font-family:system-ui,sans-serif;background:#061a12;color:#e2e8f0;width:390px}' +
+    '.w{padding:16px;width:390px}' +
+    '.hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #135845}' +
+    '.ht{font-size:11pt;font-weight:700;color:#fff}.hs{font-size:8pt;color:#4db896;margin-top:1px}.hd{font-size:8pt;color:#4db896;font-weight:600;text-align:right}' +
+    '.sec{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#4db896;margin:14px 0 7px;padding-bottom:3px;border-bottom:1px solid #1e5240}' +
+    '.sec.am{color:#d97706;border-color:#92400e}.sec.or{color:#ea580c;border-color:#7c2d12}.sec.pu{color:#a78bfa;border-color:#4c1d95}' +
+    '.ureas{display:grid;grid-template-columns:1fr 1fr;gap:7px}' +
+    '.uc{border-radius:8px;padding:10px 12px;border:1.5px solid}' +
+    '.uc.pos{background:linear-gradient(135deg,#071a10,#0d2a1a);border-color:#1e5240}' +
+    '.uc.neg{background:linear-gradient(135deg,#1a0505,#200a0a);border-color:#7f1d1d}' +
+    '.ul{font-size:6.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}' +
+    '.uc.pos .ul{color:#4db896}.uc.neg .ul{color:#f87171}' +
+    '.up{font-size:18pt;font-weight:500;line-height:1}.uc.pos .up{color:#1a9168}.uc.neg .up{color:#ef4444}' +
+    '.uu{font-size:9pt;color:#6b9e8a;font-weight:300}' +
+    '.uf{font-size:7.5pt;color:#f59e0b;font-weight:600;margin-top:2px}' +
+    '.upp{font-size:7.5pt;color:#4db896;margin-top:3px}' +
+    '.kr{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px 0}' +
+    '.kc{background:#0a2520;border:1px solid #1e5240;border-radius:7px;padding:10px 12px;text-align:center}' +
+    '.kl{font-size:6.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#6b9e8a;margin-bottom:2px}' +
+    '.kv{font-size:20pt;font-weight:500;line-height:1}.kv.g{color:#1a9168}.kv.a{color:#d97706}.kv.o{color:#ea580c}' +
+    '.ks{font-size:7.5pt;color:#6b9e8a;margin-top:2px}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th{background:#0d3328;color:#6b9e8a;padding:4px 6px;font-size:6.8pt;font-weight:600;text-align:left}' +
+    'th.r{text-align:right}.ht2{background:#1a0f2e}.ht2 th{color:#a78bfa}.ham th{background:#451a03;color:#fcd34d}' +
+    'tr:nth-child(even){background:rgba(255,255,255,.025)}' +
+    'td{padding:3.5px 6px;border-bottom:.3px solid #1a3828;font-size:7.8pt}' +
+    'td.r{text-align:right;font-size:7.5pt}' +
+    '.ac{background:#0a2520;border:1px solid #1e5240;border-radius:6px;padding:7px 12px;margin-top:6px;display:flex;justify-content:space-between;align-items:center}' +
+    '.al{font-size:7pt;color:#6b9e8a;font-weight:600;text-transform:uppercase}' +
+    '.av{font-size:12pt;font-weight:500}.av.g{color:#1a9168}.av.a{color:#d97706}' +
+    '.emp{border-radius:6px;padding:8px 10px;margin-bottom:7px}' +
+    '.emp-if{background:#064e3b;border:1px solid #10b981}.emp-hy{background:#1e3a5f;border:1px solid #3b82f6}' +
+    '.emp-lbl{font-size:9pt;font-weight:700;margin-bottom:5px}.emp-if .emp-lbl{color:#10b981}.emp-hy .emp-lbl{color:#60a5fa}' +
+    '.emp-row{display:flex;justify-content:space-between;font-size:8pt;padding:2px 0}' +
+    '.emp-val{font-size:11pt;font-weight:500;font-family:monospace}' +
+    '.bdg{display:inline-block;padding:1px 4px;border-radius:2px;font-size:6pt;font-weight:700;background:#0d3328;color:#4db896;margin-right:3px}' +
+    '.ft{margin-top:14px;padding-top:8px;border-top:1px solid #1e5240;display:flex;justify-content:space-between;align-items:center}' +
+    '.ftx{font-size:7pt;color:#2d5c47}.fdb{font-size:7pt;background:#0d3328;color:#4db896;padding:2px 8px;border-radius:10px;border:1px solid #1e5240}' +
+    '</style>';
+
+  // Ureas
+  var uHtml = '<div class="ureas">' + ureas.map(function(u){
+    var c=u.pos<0?'neg':'pos';
+    var fi=u.fijar>0?'<div class="uf">📌 +'+fw(u.fijar)+' tn a fijar</div>':'';
+    var pp=''; if(u.ppp_c)pp+='Cpa U$S '+u.ppp_c; if(u.ppp_v)pp+=(pp?' · ':'')+'Vta U$S '+u.ppp_v;
+    return '<div class="uc '+c+'"><div class="ul">'+we(u.label)+'</div><div class="up">'+fw(u.pos)+'<span class="uu"> tn</span></div>'+fi+(pp?'<div class="upp">'+we(pp)+'</div>':'')+' </div>';
+  }).join('') + '</div>';
+
+  // Historial
+  var hHtml = '<table><thead class="ht2"><tr><th>Artículo</th><th class="r">Pos.</th><th class="r">PPP Cpa</th><th class="r">PPP Vta</th></tr></thead><tbody>' +
+    hist.map(function(p){
+      var cp=p.pos<0?'color:#ef4444;font-weight:600':'color:#1a9168;font-weight:600';
+      var bg=p.pos<0?'background:rgba(239,68,68,.05)':'';
+      return '<tr style="'+bg+'"><td><span class="bdg">'+we((p.grupo||'').substring(0,4))+'</span>'+we(p.art.substring(0,25))+'</td>'+
+             '<td class="r" style="'+cp+'">'+fw(p.pos,1)+'</td>'+
+             '<td class="r" style="color:#6b9e8a;font-size:7pt">'+(p.ppp_c?'U$S '+p.ppp_c:'—')+'</td>'+
+             '<td class="r" style="color:#6b9e8a;font-size:7pt">'+(p.ppp_v?'U$S '+p.ppp_v:'—')+'</td></tr>';
+    }).join('') + '</tbody></table>';
+
+  // Ventas
+  var vHtml = '<div class="kr">'+
+    '<div class="kc"><div class="kl">Ventas semana</div><div class="kv g">'+fw(vTn)+'</div><div class="ks">toneladas</div></div>'+
+    '<div class="kc"><div class="kl">PPP semana</div><div class="kv g" style="font-size:15pt">U$S '+Math.round(vPPP)+'</div><div class="ks">por tonelada</div></div>'+
+    '</div>'+
+    '<table><thead><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
+    byArtV.map(function(e){return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#1a9168">'+fw(e[1])+'</td></tr>'}).join('')+
+    '</tbody></table>'+
+    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av g">'+fw(v26Tn)+' tn</div></div>';
+
+  // Compras
+  var cHtml = '<div class="kr">'+
+    '<div class="kc"><div class="kl">Compras semana</div><div class="kv a">'+fw(cTn)+'</div><div class="ks">toneladas</div></div>'+
+    '<div class="kc"><div class="kl">PPP semana</div><div class="kv a" style="font-size:15pt">U$S '+Math.round(cPPP)+'</div><div class="ks">por tonelada</div></div>'+
+    '</div>'+
+    '<table><thead class="ham"><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
+    byArtC.map(function(e){return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#d97706">'+fw(e[1])+'</td></tr>'}).join('')+
+    '</tbody></table>'+
+    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av a">'+fw(c26Tn)+' tn</div></div>';
+
+  // Comisiones
+  var coHtml = Object.entries(comisData).sort().map(function(entry){
+    var emp=entry[0], monedas=entry[1];
+    var cls=emp==='IF'?'emp-if':'emp-hy';
+    var clr=emp==='IF'?'#10b981':'#60a5fa';
+    var rows=Object.entries(monedas).map(function(me){
+      var mon=me[0],d=me[1];
+      var pend=d.total-d.ok;
+      return '<div class="emp-row"><span style="color:rgba(255,255,255,.5);font-size:7.5pt">'+we(mon)+'</span>'+
+             '<span class="emp-val" style="color:'+clr+'">'+mon+' '+fw(d.total,0)+'</span></div>'+
+             '<div class="emp-row" style="margin-bottom:4px">'+
+             '<span style="color:#10b981;font-size:7.5pt">✓ OK: '+mon+' '+fw(d.ok,0)+'</span>'+
+             '<span style="color:#f59e0b;font-size:7.5pt">⏳ Pendiente: '+mon+' '+fw(pend,0)+'</span></div>';
+    }).join('');
+    return '<div class="emp '+cls+'"><div class="emp-lbl">'+emp+'</div>'+rows+'</div>';
+  }).join('');
+
+  var html2 = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+CSS+'</head><body><div class="w">'+
+    '<div class="hdr"><div style="flex:1"><div class="ht">Posición Fertilizantes</div>'+
+    '<div class="hs">'+we(semLabel||'al '+new Date().toLocaleDateString("es-AR"))+'</div></div>'+
+    '<div class="hd">IF &amp; HIRYO</div></div>'+
+    '<div class="sec">🌾 Posición Ureas</div>'+uHtml+
+    '<div class="sec pu">📅 Historial de Posición</div>'+hHtml+
+    '<div class="sec">📈 Ventas</div>'+vHtml+
+    '<div class="sec am">🛒 Compras</div>'+cHtml+
+    '<div class="sec or">💰 Comisiones Pendientes</div>'+coHtml+
+    '<div class="ft"><div class="ftx">IF — Ingeniería en Fertilizantes S.A.</div>'+
+    '<div class="fdb">'+we(semLabel||new Date().toLocaleDateString("es-AR"))+'</div></div>'+
+    '</div></body></html>';
+
+  var blob = new Blob([html2],{type:'text/html;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reporte_wapp_'+viernes+'.html';
+  a.click();
+  toast('📱 Reporte WhatsApp generado');
+}
 
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrar(); cerrarModal('mbg-upload'); cerrarModal('mbg-fijar') } });
