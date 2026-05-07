@@ -337,27 +337,7 @@ function calcular(){
     inf.textContent="✓ Calculado ("+semLabel+") — "+new Date().toLocaleTimeString("es-AR");
     btn.disabled=false;
 
-    var msg="✅ KPIs — "+semLabel+"
-
-";
-    msg+="📋 Pedidos sin cargar: "+R.k1+" (vie12) / "+R.k2+" total
-";
-    msg+="📥 Cupos sin cargar: "+R.k3+" / Pedir: "+R.k5+" / Sin resp: "+R.k7+"
-";
-    msg+="🚛 Pend. remitir: "+R.rem16+" (>24hs: "+R.rem17+")
-";
-    msg+="🧾 Remitido pend. fac.: "+R.k10+" negos ("+R.k11+" CyO + "+R.k12+" Fact.IF) / "+R.k13+" tn
-";
-    msg+="💳 Fact. anticipada: "+R.k17+"
-";
-    msg+="✂️ Ventas <2tn: "+R.k20n+" / "+R.k20+"tn | Compras: "+R.k19n+" / "+R.k19+"tn
-";
-    msg+="⚠️ Reclamos: "+R.k21+"
-
-";
-    msg+="👉 Para actualizar el dashboard completo con los detalles,
-subí los archivos al servidor y regenerá el HTML.";
-    alert(msg);
+    var lineas=["KPIs calculados (" + semLabel + ")","","Pedidos sin cargar: " + R.k1 + " (vie12) / " + R.k2 + " total","Cupos sin cargar: " + R.k3 + " / Pedir: " + R.k5 + " / Sin resp: " + R.k7,"Pend. remitir: " + R.rem16 + " (>24hs: " + R.rem17 + ")","Remitido pend. fac.: " + R.k10 + " negos (" + R.k11 + " CyO + " + R.k12 + " Fact.IF) / " + R.k13 + " tn","Fact. anticipada: " + R.k17,"Ventas <2tn: " + R.k20n + " / " + R.k20 + "tn  |  Compras: " + R.k19n + " / " + R.k19 + "tn","Reclamos: " + R.k21];alert(lineas.join("\n"));;
 
   }catch(err){inf.textContent="Error: "+err.message;btn.disabled=false;console.error(err);}
 }
