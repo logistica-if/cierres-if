@@ -462,9 +462,9 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
       <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:16px;text-align:center">
         <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Ventas de la semana</div>
         <div style="font-size:48px;font-weight:800;color:#1a9168;font-family:monospace" id="rep-v-sem">—</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:2px">toneladas</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:8px">PPP semana</div>
-        <div style="font-size:18px;font-weight:700;color:#e2e8f0;font-family:monospace" id="rep-v-ppp">—</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">tn sólidas</div>
+        <div id="rep-v-sem-liq" style="display:none;margin-top:4px"><span style="font-size:16px;font-weight:700;color:#3b82f6;font-family:monospace" id="rep-v-sem-klts">—</span><span style="font-size:11px;color:#6b7280"> k.lts líquidos</span></div>
+        
       </div>
       <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:14px">
         <div style="font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:10px">Por Modalidad</div>
@@ -513,8 +513,7 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
         <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Compras de la semana</div>
         <div style="font-size:48px;font-weight:800;color:#f59e0b;font-family:monospace" id="rep-c-sem">—</div>
         <div style="font-size:11px;color:#6b7280;margin-top:2px">toneladas</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:8px">PPP semana</div>
-        <div style="font-size:18px;font-weight:700;color:#e2e8f0;font-family:monospace" id="rep-c-ppp">—</div>
+        
       </div>
       <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:14px">
         <div style="font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:10px">Por Modalidad</div>
@@ -1077,7 +1076,7 @@ function recalcular() {
     try {
       var nuevo = calcDesdeWB(wb_loaded);
       // Actualizar POSICION_INICIAL
-      for (var i = 0; i < POSICION_INICIAL.length; i++) POSICION_INICIAL.pop();
+      POSICION_INICIAL.splice(0);
       nuevo.forEach(function(p){ POSICION_INICIAL.push(p) });
       aplicarFijarSilencioso();
       initSidebar(); renderAll();
@@ -1287,10 +1286,12 @@ function calcReporte(){
   var cSem=REP_DATA.compras.filter(function(r){return r.fecha>=lunes&&r.fecha<=viernes&&ART_VALIDOS.has(r.art.toUpperCase())});
   var cAnio=REP_DATA.compras.filter(function(r){return r.fecha>=(String(anio)+'-01-01')&&r.fecha<=viernes&&ART_VALIDOS.has(r.art.toUpperCase())});
   var cAnt=REP_DATA.compras.filter(function(r){return r.fecha>=(String(anioAnt)+'-01-01')&&r.fecha<=(String(anioAnt)+viernes.substring(4))&&ART_VALIDOS.has(r.art.toUpperCase())});
-  var vSemTn=vSem.reduce(function(s,r){return s+r.tn},0);
-  var vAnioTn=vAnio.reduce(function(s,r){return s+r.tn},0);
-  var vAntTn=vAnt.reduce(function(s,r){return s+r.tn},0);
-  var vPPP=vSemTn>0?vSem.reduce(function(s,r){return s+r.precio*r.tn},0)/vSemTn:0;
+  function esLiq(art){var u=(art||'').toUpperCase();return u.includes('(LITROS)')||u.includes('(LTS)');}
+  var vSemTn  =vSem.filter(function(r){return !esLiq(r.art)}).reduce(function(s,r){return s+r.tn},0);
+  var vSemKlts=vSem.filter(function(r){return  esLiq(r.art)}).reduce(function(s,r){return s+r.tn},0);
+  var vAnioTn  =vAnio.filter(function(r){return !esLiq(r.art)}).reduce(function(s,r){return s+r.tn},0);
+  var vAnioKlts=vAnio.filter(function(r){return  esLiq(r.art)}).reduce(function(s,r){return s+r.tn},0);
+  var vAntTn  =vAnt.filter(function(r){return !esLiq(r.art)}).reduce(function(s,r){return s+r.tn},0);
   var cSemTn=cSem.reduce(function(s,r){return s+r.tn},0);
   var cAnioTn=cAnio.reduce(function(s,r){return s+r.tn},0);
   var cAntTn=cAnt.reduce(function(s,r){return s+r.tn},0);
@@ -1306,10 +1307,12 @@ function calcReporte(){
     avisoEl.textContent='Sin datos para el rango. Datos hasta '+( ul[ul.length-1]||'--')+'. Cambia las fechas o actualiza el archivo.';
   }else{avisoEl.style.display='none';}
   document.getElementById('rep-v-sem').textContent=fmt2(vSemTn);
-  document.getElementById('rep-v-ppp').textContent=vPPP>0?'U$S '+Math.round(vPPP)+'/tn':'--';
-  document.getElementById('rep-v-acum').textContent=fmt2(vAnioTn);
+  document.getElementById('rep-v-sem-klts').textContent=fmt2(vSemKlts);
+  document.getElementById('rep-v-sem-liq').style.display=vSemKlts>0.001?'block':'none';
+  
+  document.getElementById('rep-v-acum').textContent=fmt2(vAnioTn)+(vAnioKlts>0.001?' + '+fmt2(vAnioKlts)+' k.lts liq.':'');
   document.getElementById('rep-c-sem').textContent=fmt2(cSemTn);
-  document.getElementById('rep-c-ppp').textContent=cPPP>0?'U$S '+Math.round(cPPP)+'/tn':'--';
+  
   document.getElementById('rep-c-acum').textContent=fmt2(cAnioTn);
   document.getElementById('rep-v-vs-ant').innerHTML=vAntTn>0?('Al '+dd+anioAnt+': <strong>'+fmt2(vAntTn)+' tn<\/strong><br><strong style="color:'+(parseFloat(vDiff)>=0?'#1a9168':'#ef4444')+'">('+(parseFloat(vDiff)>=0?'+':'')+vDiff+'%)<\/strong>'):'Sin datos año anterior';
   document.getElementById('rep-c-vs-ant').innerHTML=cAntTn>0?('Al '+dd+anioAnt+': <strong>'+fmt2(cAntTn)+' tn<\/strong><br><strong style="color:'+(parseFloat(cDiff)>=0?'#1a9168':'#ef4444')+'">('+(parseFloat(cDiff)>=0?'+':'')+cDiff+'%)<\/strong>'):'Sin datos año anterior';
@@ -1957,9 +1960,9 @@ document.getElementById('fileInput').addEventListener('change', e => {
 document.getElementById('fileInput2').addEventListener('change', e => {
   if (e.target.files[0]) procesarArchivo(e.target.files[0]);
 });
-document.getElementById('searchInput').addEventListener('input', renderTabla);
-document.getElementById('monedaFilter').addEventListener('change', renderTabla);
-document.getElementById('estadoFilter').addEventListener('change', renderTabla);
+document.getElementById('searchInput').addEventListener('input', comis_renderTabla);
+document.getElementById('monedaFilter').addEventListener('change', comis_renderTabla);
+document.getElementById('estadoFilter').addEventListener('change', comis_renderTabla);
 document.getElementById('btnExport').addEventListener('click', exportarExcel);
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target.id === 'modal') comis_cerrarModal();
