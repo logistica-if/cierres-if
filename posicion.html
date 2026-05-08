@@ -1963,7 +1963,7 @@ document.getElementById('fileInput2').addEventListener('change', e => {
 document.getElementById('searchInput').addEventListener('input', comis_renderTabla);
 document.getElementById('monedaFilter').addEventListener('change', comis_renderTabla);
 document.getElementById('estadoFilter').addEventListener('change', comis_renderTabla);
-document.getElementById('btnExport').addEventListener('click', exportarExcel);
+document.getElementById('btnExport').addEventListener('click', comis_exportarExcel);
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target.id === 'modal') comis_cerrarModal();
 });
