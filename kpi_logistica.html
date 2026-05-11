@@ -171,6 +171,9 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
       <div class="tip" id="tip-al" style="min-width:320px">
         <div style="color:#fca5a5;font-size:8pt">Calculá para ver el detalle</div>
       </div>
+      <div class="tip" id="tip-ce" style="min-width:280px;left:160px">
+        <div style="color:#6ee7b7;font-size:8pt">Calculá para ver el detalle</div>
+      </div>
     </div>
     <div class="intro-charts">
       <div class="ic"><div class="ic-t">Pedidos</div><div id="ic-ped"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-ped-s">—</div></div>
@@ -326,7 +329,7 @@ function updChart(){
   var counts={};
   document.querySelectorAll('.msel').forEach(function(s){if(s.value)counts[s.value]=(counts[s.value]||0)+1;});
   var entries=Object.entries(counts).sort(function(a,b){return b[1]-a[1]});
-  var w=document.getElementById('chart-wrap');if(!entries.length){w.innerHTML='';return;}
+  var w=document.getElementById('chart-wrap');if(!w)return;if(!entries.length){w.innerHTML='';return;}
   var mx=entries[0][1];
   var h='<div style="background:#f8fdf9;border:1px solid var(--bdr);border-radius:8px;padding:10px 14px"><div style="font-size:8pt;font-weight:700;color:#374151;margin-bottom:8px">Distribución de motivos</div>';
   entries.forEach(function(e){
@@ -683,7 +686,7 @@ function calcular(){
     calRows+=renderKrow('k19','Compras <2tn (TN)',fN(peqCTn,1),null,'num','todos',tH(['Fecha','Pedido','Proveedor','Artículo','TN'],peqC,'#7c3aed'));
     calRows+=renderKrow('k21','Reclamos clientes',0,null,'alert','sem ant','');
     calRows+=renderKrow('k22','Reclamos planta Hallpa',0,null,'alert','manual','');
-    document.getElementById('s-cal-body').innerHTML='<div class="nota">Hacé clic en cualquier indicador con valor > 0 para ver el detalle.</div><div class="kgrid">'+calRows+'</div>';
+    var _scal=document.getElementById('s-cal-body');if(_scal)_scal.innerHTML='<div class="nota">Hacé clic en cualquier indicador con valor > 0 para ver el detalle.</div><div class="kgrid">'+calRows+'</div>';
 
     // ─ PENDIENTE REMITIR ─
     var remHTML='';
@@ -698,7 +701,7 @@ function calcular(){
     var remKrows=renderKrow('k16','Pendiente de remitir (total)',k16Sin.length+k16Con.length,null,'alert','sem ant','');
     remKrows+=renderKrow('k16b','Sin remito',k16Sin.length,null,'alert','sem ant','');
     remKrows+=renderKrow('k16c','Con remito',k16Con.length,null,'num','sem ant','');
-    document.getElementById('s-rem-body').innerHTML='<div class="kgrid">'+remKrows+'</div>'+remHTML;
+    var _srem=document.getElementById('s-rem-body');if(_srem)_srem.innerHTML='<div class="kgrid">'+remKrows+'</div>'+remHTML;
     var bRem=document.querySelector('#s-rem .bdg');
     if(bRem){bRem.textContent=k16Sin.length+' sin remito · '+k16Con.length+' con remito';bRem.className='bdg '+(k16Sin.length>0?'red':'ok');}
 
@@ -706,7 +709,7 @@ function calcular(){
     var cupKrows=renderKrow('k5b','Cupos pendientes de pedir',k5Det.length,null,'alert','sem act',tH(colsCup,k5Det,'#dc2626'));
     cupKrows+=renderKrow('k7b','Cupos sin respuesta',k7Det.length,null,'alert','sem act',tH(colsCup.concat(['Nro cupo']),k7Det,'#dc2626'));
     var cupMsg=k5Det.length+k7Det.length===0?'<div class="nota ok">Sin cupos pendientes en la semana actual.</div>':'';
-    document.getElementById('s-cupos-body').innerHTML='<div class="kgrid">'+cupKrows+'</div>'+cupMsg;
+    var _scup=document.getElementById('s-cupos-body');if(_scup)_scup.innerHTML='<div class="kgrid">'+cupKrows+'</div>'+cupMsg;
     var bCup=document.querySelector('#s-cupos .bdg');
     if(bCup){bCup.textContent='Pedir: '+k5Det.length+' · Sin resp: '+k7Det.length;bCup.className='bdg '+(k5Det.length+k7Det.length>0?'amb':'ok');}
 
@@ -719,12 +722,12 @@ function calcular(){
     var facAll=facCyo.concat(facNrm);
     facHTML+='<div class="nota">HIRYO→[cliente final]. 🔄 = consignación. Días = desde el último remito.</div>';
     facHTML+=tH(['Fecha','Nro Ped.','Cliente','Modalidad','Artículo','Pend.','Días'],facAll,'#d97706');
-    document.getElementById('s-fac-body').innerHTML=facHTML;
+    var _sfac=document.getElementById('s-fac-body');if(_sfac)_sfac.innerHTML=facHTML;
     var bFac=document.querySelector('#s-fac .bdg');
     if(bFac){bFac.textContent=(facCyo.length+facNrm.length)+' negos';bFac.className='bdg '+(facAll.length>0?'amb':'ok');}
 
     // ─ AJUSTABLES <2TN ─
-    document.getElementById('s-peq-body').innerHTML='<div class="nota">Sin corte de fecha. Excluye fletes, intereses y envases.</div><div class="det2"><div><div class="det-t">Reducción — '+peqVRed.length+' negocios</div>'+tH(['Fecha','Pedido','Cliente','Artículo','TN'],peqVRed,'#dc2626')+'</div><div><div class="det-t">Nota de Crédito — '+peqVNC.length+' negocios</div>'+tH(['Fecha','Pedido','Cliente','Artículo','TN pend.','Entregado'],peqVNC,'#d97706')+'</div></div><div class="det-t" style="margin-top:12px">Compras <2tn</div>'+tH(['Fecha','Pedido','Proveedor','Artículo','TN'],peqC,'#7c3aed');
+    var _speq=document.getElementById('s-peq-body');if(_speq)_speq.innerHTML='<div class="nota">Sin corte de fecha. Excluye fletes, intereses y envases.</div><div class="det2"><div><div class="det-t">Reducción — '+peqVRed.length+' negocios</div>'+tH(['Fecha','Pedido','Cliente','Artículo','TN'],peqVRed,'#dc2626')+'</div><div><div class="det-t">Nota de Crédito — '+peqVNC.length+' negocios</div>'+tH(['Fecha','Pedido','Cliente','Artículo','TN pend.','Entregado'],peqVNC,'#d97706')+'</div></div><div class="det-t" style="margin-top:12px">Compras <2tn</div>'+tH(['Fecha','Pedido','Proveedor','Artículo','TN'],peqC,'#7c3aed');
     var bPeq=document.querySelector('#s-peq .bdg');
     if(bPeq){bPeq.textContent=(peqVRed.length+peqVNC.length)+'/'+fN(peqVTn,1)+'tn V · '+peqC.length+'/'+fN(peqCTn,1)+'tn C';}
 
@@ -755,7 +758,7 @@ function calcular(){
     // FC Ventas detalle
     mHTML+='<div class="det-t" style="margin-top:12px">FC Ventas emitidas</div>'+tH(['Fecha/Hora','Usuario','Nro Factura'],facDet1,'#10b981',60);
     prodHTML+=mHTML;
-    document.getElementById('s-prod-body').innerHTML=prodHTML;
+    var _sprod=document.getElementById('s-prod-body');if(_sprod)_sprod.innerHTML=prodHTML;
 
     // ─ INTRO ─
     // Conteo de alertas real — basado en todos los indicadores calculados
@@ -773,9 +776,9 @@ function calcular(){
     var pc=barSVG([[' Alta',prodStats.pedAlt,'#3b82f6'],['Mod',prodStats.pedMod,'#f59e0b'],['Baja',prodStats.pedBaj,'#ef4444']]);
     var rc=barSVG([[' Alta',prodStats.remAlt,'#3b82f6'],['Mod',prodStats.remMod,'#f59e0b'],['Baja',prodStats.remBaj,'#ef4444']]);
     var fc2=barSVG([['FC',prodStats.facVC,'#10b981'],['Liq',prodStats.facLiq,'#8b5cf6'],['NC',prodStats.facNC,'#f59e0b']]);
-    document.getElementById('ic-ped').innerHTML=pc;
-    document.getElementById('ic-rem').innerHTML=rc;
-    document.getElementById('ic-fac').innerHTML=fc2;
+    var _icped=document.getElementById('ic-ped');if(_icped)_icped.innerHTML=pc;
+    var _icrem=document.getElementById('ic-rem');if(_icrem)_icrem.innerHTML=rc;
+    var _icfac=document.getElementById('ic-fac');if(_icfac)_icfac.innerHTML=fc2;
     document.getElementById('ic-ped-s').textContent=(rpa*100).toFixed(1)+'% reproceso';
     document.getElementById('ic-rem-s').textContent=(rra*100).toFixed(1)+'% reproceso';
     document.getElementById('ic-fac-s').textContent=(prodStats.facVC+prodStats.facLiq+prodStats.facNC+prodStats.facOt)+' emitidas';
@@ -787,8 +790,8 @@ function calcular(){
       if(v>0)alTip+='<div class="tip-row"><span class="trl">'+esc(n)+'</span><span class="trv">'+esc(String(v))+'</span></div>';
     });
     alertaItems.forEach(function(x){if(x[1]===0)ceTip+='<div class="tip-row ok"><span class="trl">'+esc(x[0])+'</span></div>';});
-    document.getElementById('tip-al').innerHTML=alTip||'<div style="color:#6ee7b7;font-size:8pt">Sin alertas</div>';
-    document.getElementById('tip-ce').innerHTML=ceTip||'<div style="color:#fca5a5;font-size:8pt">Todo tiene alertas</div>';
+    var _tipal=document.getElementById('tip-al');if(_tipal)_tipal.innerHTML=alTip||'<div style="color:#6ee7b7;font-size:8pt">Sin alertas</div>';
+    var _tipce=document.getElementById('tip-ce');if(_tipce)_tipce.innerHTML=ceTip||'<div style="color:#fca5a5;font-size:8pt">Todo tiene alertas</div>';
     // Tarjetas resumen
     scUpd('s-rem',k16Sin.length+k16Con.length,k16Sin.length>0?'#dc2626':'#059669',k16Sin.length+' sin rem · '+k16Con.length+' con rem ✅');
     scUpd('s-cupos',k5Det.length+k7Det.length,(k5Det.length+k7Det.length)>0?'#d97706':'#059669','Pedir: '+k5Det.length+' · Sin resp: '+k7Det.length);
