@@ -177,8 +177,8 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
       <div class="ic"><div class="ic-t">Facturas</div><div id="ic-fac"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-fac-s">—</div></div>
     </div>
     <div class="intro-cols">
-      <div><div class="icol-t g">🏆 Hitos</div><div class="hito ok">Calculá para ver los hitos</div></div>
-      <div><div class="icol-t w">💡 Oportunidades</div><div class="hito warn">Calculá para ver las oportunidades</div></div>
+      <div><div class="icol-t g">🏆 Hitos</div><div id="hitos-list"><div class="hito ok">Calculá para ver los hitos</div></div></div>
+      <div><div class="icol-t w">💡 Oportunidades</div><div id="opo-list"><div class="hito warn">Calculá para ver las oportunidades</div></div></div>
     </div>
   </div>
 </div>
@@ -359,7 +359,7 @@ function rWBArr(wb,sh){
   var key=Object.keys(wb.Sheets).find(function(k){return sh==='*'||k.toLowerCase().includes(sh.toLowerCase());});
   if(!key)return [];
   var rows=XLSX.utils.sheet_to_json(wb.Sheets[key],{header:1,defval:''});
-  return rows.filter(function(r){return Array.isArray(r)&&r.some(function(v){return v!=='';});});
+  return rows.filter(function(r){return Array.isArray(r)&&['Alta','Modifica','Baja'].indexOf(String(r[2]||'').trim())>=0;});
 }
 function toN(v){return parseFloat(String(v||0).replace(',','.'))||0;}
 function toD(v){if(!v)return null;var d=new Date(v);return isNaN(d)?null:d;}
@@ -550,6 +550,7 @@ function calcular(){
       var ent=toN(r['Entregado']),fac=toN(r['Facturado']);
       if(ent<=0||fac>=ent)return;
       var art=String(r['Articulo']||''),mod=String(r['Modalidad']||'');
+      if(artExcl(art))return;
       var cli=String(r['Cliente']||''),ped=String(r['Numero']||'').trim();
       var fe=toD(r['Fecha']);
       var pend=ent-fac;
@@ -560,7 +561,8 @@ function calcular(){
         var hy=ifToHY[ped]||{};
         cliShow='HIRYO→'+(hy.cliente||'-')+(hy.consig?' 🔄':'');
       }
-      var row=[fmtD(fe),ped,cliShow,mod,art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',String(r['Dias de remitido']||'-')];
+      var diasD=fe?Math.round((new Date()-fe)/(864e5)):null;
+      var row=[fmtD(fe),ped,cliShow,mod,art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',diasD!==null?diasD+'d':'-'];
       if(isLiq)facLts+=pend;
       else if(mod.toUpperCase().includes('CUENTA'))facCyo.push(row);
       else facNrm.push(row);
@@ -757,7 +759,8 @@ function calcular(){
       (facCyo.length+facNrm.length),(k16Sin.length+k16Con.length),k17Det.length,
       peqVRed.length+peqVNC.length,peqC.length];
     var nAl=allAl.filter(function(v){return v>0}).length;
-    var nCe=allAl.filter(function(v){return v===0}).length;
+    var alertaItems=[['Pedidos sin cargar',k1Det.length],['Cupos sin cargar',k3Det.length],['Cupos pend. pedir',k5Det.length],['Cupos sin respuesta',k7Det.length],['Pend. fact. ant.',k17Det.length],['Reclamos',0]];
+    var nCe=alertaItems.filter(function(x){return x[1]===0}).length;
     var isvs=document.querySelectorAll('.isv');
     if(isvs[0]){isvs[0].textContent=nAl;isvs[0].style.color=nAl>0?'#f87171':'#34d399';}
     if(isvs[1])isvs[1].textContent=nCe;
@@ -773,7 +776,12 @@ function calcular(){
     document.getElementById('ic-fac-s').textContent=(prodStats.facVC+prodStats.facLiq+prodStats.facNC+prodStats.facOt)+' emitidas';
     // Tooltips
     var alTip='',ceTip='';
-    [['Cupos sin cargar',k3Det.length],['Cupos pend. pedir',k5Det.length],['Cupos sin respuesta',k7Det.length],['Remit. pend. fac.',(facCyo.length+facNrm.length)],['Pendiente remitir',k16Sin.length],['Pend. fact. ant.',k17Det.length],['Ventas <2tn',fN(peqVTn,1)+' tn'],['Compras <2tn',fN(peqCTn,1)+' tn']].forEach(function(x){if(parseFloat(x[1])>0)alTip+='<div class="tip-row"><span class="trl">'+esc(x[0])+'</span><span class="trv">'+esc(x[1])+'</span></div>';else ceTip+='<div class="tip-row ok"><span class="trl">'+esc(x[0])+'</span></div>';});
+    allAl.forEach(function(v,i){
+      var names=['Cupos sin cargar','Cupos pend. pedir','Remit. pend. fac.','Pend. remitir','Pend. fact. ant.','Ventas <2tn','Compras <2tn','Cupos sin resp.','Pedidos sin NC','Pedidos <2tn'];
+      var n=names[i]||('Item '+i);
+      if(v>0)alTip+='<div class="tip-row"><span class="trl">'+esc(n)+'</span><span class="trv">'+esc(String(v))+'</span></div>';
+    });
+    alertaItems.forEach(function(x){if(x[1]===0)ceTip+='<div class="tip-row ok"><span class="trl">'+esc(x[0])+'</span></div>';});
     document.getElementById('tip-al').innerHTML=alTip||'<div style="color:#6ee7b7;font-size:8pt">Sin alertas</div>';
     document.getElementById('tip-ce').innerHTML=ceTip||'<div style="color:#fca5a5;font-size:8pt">Todo tiene alertas</div>';
     // Tarjetas resumen
@@ -782,6 +790,26 @@ function calcular(){
     scUpd('s-fac',facCyo.length+facNrm.length,(facCyo.length+facNrm.length)>0?'#d97706':'#059669',fN(facCyo.length>0?facTnCyo:0,1)+'tn CyO + '+fN(facTnNrm,1)+'tn Fac.IF');
     scUpd('s-peq',peqVRed.length+peqVNC.length+peqC.length,'#7c3aed','V: '+(peqVRed.length+peqVNC.length)+'/'+fN(peqVTn,1)+'tn · C: '+peqC.length+'/'+fN(peqCTn,1)+'tn');
 
+    // Hitos
+    var hitosEl=document.getElementById('hitos-list');
+    if(hitosEl){var hh='';
+      if(prodStats.pedAlt>0)hh+='<div class="hito ok">✅ '+prodStats.pedAlt+' pedidos cargados</div>';
+      if(prodStats.remAlt>0)hh+='<div class="hito ok">✅ '+prodStats.remAlt+' remitos procesados</div>';
+      if(prodStats.facVC>0)hh+='<div class="hito ok">✅ '+prodStats.facVC+' facturas de venta emitidas</div>';
+      if(k1Det.length===0)hh+='<div class="hito ok">✅ Todos los pedidos sem ant cargados</div>';
+      if(k16Sin.length===0)hh+='<div class="hito ok">✅ Sin cupos pendientes de remitir</div>';
+      if(!hh)hh='<div class="hito ok">ℹ️ Sin hitos destacados</div>';
+      hitosEl.innerHTML=hh;}
+    // Oportunidades
+    var opoEl=document.getElementById('opo-list');
+    if(opoEl){var oh='';
+      if(k16Sin.length>0)oh+='<div class="hito warn">⚠️ '+k16Sin.length+' cupo(s) sin remito</div>';
+      if(k17Det.length>0)oh+='<div class="hito warn">💳 '+k17Det.length+' CyO con FA pendiente</div>';
+      if(peqVRed.length>0)oh+='<div class="hito warn">✂️ '+peqVRed.length+' ventas <2tn (reducción)</div>';
+      if(peqVNC.length>0)oh+='<div class="hito warn">📄 '+peqVNC.length+' ventas <2tn (NC)</div>';
+      if(facCyo.length>0)oh+='<div class="hito warn">🧾 '+facCyo.length+' CyO pend. facturar ('+fN(facTnCyo,1)+'tn)</div>';
+      if(!oh)oh='<div class="hito ok">✅ Sin oportunidades críticas</div>';
+      opoEl.innerHTML=oh;}
     inf.textContent='OK — '+sanLbl+' — '+new Date().toLocaleTimeString('es-AR');
     btn.disabled=false;
   }catch(err){
