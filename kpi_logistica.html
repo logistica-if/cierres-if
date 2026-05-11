@@ -587,13 +587,16 @@ function calcular(){
     // Saldos IF: Entregado > Facturado, sin corte de fecha
     var facCyo=[],facNrm=[],facLts=0;
     rVta.forEach(function(r){
+      // Usar columna 'Pendiente de facturar (+)' si existe, sino calcular
+      var pf=toN(r['Pendiente de facturar (+)']);
       var ent=toN(r['Entregado']),fac=toN(r['Facturado']);
-      if(ent<=0||fac>=ent)return;
+      var pend_check = pf>0 ? pf : (ent-fac);
+      if(pend_check<=0)return;
       var art=String(r['Articulo']||''),mod=String(r['Modalidad']||'');
       if(artExcl(art))return;
       var cli=String(r['Cliente']||''),ped=String(r['Numero']||'').trim();
       var fe=toD(r['Fecha']);
-      var pend=ent-fac;
+      var pend=pf>0?pf:(ent-fac);
       var isLiq=esLiq(art);
       // Enriquecer con cliente HIRYO
       var cliShow=cli.slice(0,25);
