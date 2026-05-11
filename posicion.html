@@ -1972,7 +1972,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ============ INIT ============
-comis_// init comisiones
+// init comisiones
 try { comis_cargar(); } catch(e) {}
 
 
@@ -2025,7 +2025,7 @@ function generarWhatsApp() {
     v26 =REP_DATA.ventas.filter(function(r){return r.fecha>=(anio+'-01-01')&&r.fecha<=viernes});
     c26 =REP_DATA.compras.filter(function(r){return r.fecha>=(anio+'-01-01')&&r.fecha<=viernes});
   }
-  var vTn=vSem.reduce(function(s,r){return s+r.tn},0);
+  function isLiq2(a){return (a||'').toUpperCase().includes('(LITROS)')||(a||'').toUpperCase().includes('(LTS)');}var vTnSol=vSem.filter(function(r){return !isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0);var vTnLts=vSem.filter(function(r){return isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0);var vTn=vTnSol;
   var cTn=cSem.reduce(function(s,r){return s+r.tn},0);
   var v26Tn=v26.reduce(function(s,r){return s+r.tn},0);
   var c26Tn=c26.reduce(function(s,r){return s+r.tn},0);
@@ -2123,13 +2123,13 @@ function generarWhatsApp() {
 
   // Ventas
   var vHtml = '<div class="kr">'+
-    '<div class="kc"><div class="kl">Ventas semana</div><div class="kv g">'+fw(vTn)+'</div><div class="ks">toneladas</div></div>'+
+    '<div class="kc"><div class="kl">Ventas semana</div><div class="kv g">'+fw(vTnSol)+'</div>'+(vTnLts>0?'<div style="font-size:9pt;color:#3b82f6">+ '+fw(vTnLts*1000,0)+' k.lts</div>':'')+'<div class="ks">toneladas</div></div>'+
     '<div class="kc"><div class="kl">PPP semana</div><div class="kv g" style="font-size:15pt">U$S '+Math.round(vPPP)+'</div><div class="ks">por tonelada</div></div>'+
     '</div>'+
     '<table><thead><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
-    byArtV.map(function(e){return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#1a9168">'+fw(e[1])+'</td></tr>'}).join('')+
+    byArtV.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#1a9168">'+(isL?fw(e[1]*1000,0)+' k.lts':fw(e[1]))+'</td></tr>';}).join('')+
     '</tbody></table>'+
-    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av g">'+fw(v26Tn)+' tn</div></div>';
+    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av g">'+fw(v26.filter(function(r){return !isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0))+' tn'+(v26.filter(function(r){return isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0)>0?' + '+fw(v26.filter(function(r){return isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0)*1000,0)+' k.lts':'')+'</div></div>';
 
   // Compras
   var cHtml = '<div class="kr">'+
@@ -2137,7 +2137,7 @@ function generarWhatsApp() {
     '<div class="kc"><div class="kl">PPP semana</div><div class="kv a" style="font-size:15pt">U$S '+Math.round(cPPP)+'</div><div class="ks">por tonelada</div></div>'+
     '</div>'+
     '<table><thead class="ham"><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
-    byArtC.map(function(e){return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#d97706">'+fw(e[1])+'</td></tr>'}).join('')+
+    byArtC.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#d97706">'+(isL?fw(e[1]*1000,0)+' k.lts':fw(e[1]))+'</td></tr>';}).join('')+
     '</tbody></table>'+
     '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av a">'+fw(c26Tn)+' tn</div></div>';
 
