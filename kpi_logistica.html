@@ -125,19 +125,42 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
 .mod-v{font-family:'DM Mono',monospace;font-size:18pt;font-weight:500;line-height:1.1}
 .mod-s{font-size:7.5pt;margin-top:3px;color:#6b7280}
 @media(max-width:700px){.kgrid,.prod-grid,.det2,.sum,.intro-row{grid-template-columns:1fr 1fr}}
+
+/* ── PESTAÑAS ───────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px;background:#fff;border-radius:8px 8px 0 0;overflow:hidden}
+.tab{padding:10px 20px;font-size:9pt;font-weight:600;color:var(--ts);cursor:pointer;border-right:1px solid var(--bdr);transition:all .15s;white-space:nowrap;user-select:none}
+.tab:hover{background:var(--bg);color:var(--g)}
+.tab.active{background:var(--g);color:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── RESUMEN CARDS (3 áreas) ─────────────────────────────────────── */
+.resumen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.rcard{background:#fff;border:1.5px solid var(--bdr);border-radius:12px;padding:18px 20px;cursor:pointer;transition:box-shadow .15s}
+.rcard:hover{box-shadow:0 4px 16px rgba(19,88,69,.12)}
+.rcard-title{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ts);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.rcard-icon{font-size:14pt}
+.rcard-items{display:flex;flex-direction:column;gap:6px}
+.ritem{display:flex;justify-content:space-between;align-items:baseline;font-size:8.5pt}
+.ritem-label{color:var(--ts)}
+.ritem-val{font-family:'DM Mono',monospace;font-weight:700;font-size:11pt}
+.ritem-val.ok{color:#059669}.ritem-val.warn{color:#d97706}.ritem-val.red{color:#dc2626}.ritem-val.blue{color:#2563eb}
+.rcard-footer{margin-top:12px;padding-top:8px;border-top:1px solid var(--bdr);font-size:7.5pt;color:var(--ts);text-align:center}
+
+@media(max-width:700px){.resumen-grid,.tabs{flex-direction:column}.tab{border-right:none;border-bottom:1px solid var(--bdr)}}
 </style>
 </head>
 <body>
+
 <div class="hdr">
   <img src="data:image/png;base64,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" alt="IF">
-  <div class="hdr-t">KPI Logística Semanal</div>
+  <div class="hdr-t">KPI Logística — IF</div>
   <div class="dg">
-    <label>Sem ant (medición):</label>
+    <label>Sem ant:</label>
     <input type="date" id="f-san-i" value="2026-05-04">
     <span style="color:#4db896">→</span>
     <input type="date" id="f-san-f" value="2026-05-08">
     <span class="sep">|</span>
-    <label>Sem act (cupos):</label>
+    <label>Sem act:</label>
     <input type="date" id="f-sac-i" value="2026-05-11" class="act">
     <span style="color:#4db896">→</span>
     <input type="date" id="f-sac-f" value="2026-05-15" class="act">
@@ -146,154 +169,160 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
 
 <div class="main">
 
-<div class="upload-panel">
-  <div class="up-title">📂 Subir archivos para calcular
-    <span class="up-toggle" onclick="this.closest('.upload-panel').querySelector('.up-body').classList.toggle('open');this.textContent=this.textContent.includes('▼')?'▲ ocultar':'▼ expandir'">▼ expandir</span>
-  </div>
-  <div class="up-body" id="up-body">
-    <div class="up-grid"><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">LOGISTICA Y OPERACIONES IF (respuestas)</div><div class="up-desc">Cierres de negocios y solicitudes de cupo</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('frm',this)" style="display:none"></label><div class="up-status" id="st-frm">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Cupos IF - HIRYO</div><div class="up-desc">PEDIR CUPO, SIN RESPUESTA, ORDEN ENVIADA</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('cup',this)" style="display:none"></label><div class="up-status" id="st-cup">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Saldos IF (Fertilizante)</div><div class="up-desc">Remitido pend. facturar, <2tn, fact. anticipada</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('sif',this)" style="display:none"></label><div class="up-status" id="st-sif">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Saldos HIRYO (Fertilizante)</div><div class="up-desc">Cliente final de los negocios HIRYO</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('shy',this)" style="display:none"></label><div class="up-status" id="st-shy">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Auditoría ERP</div><div class="up-desc">Pedidos, Remitos, Facturas — reprocesos</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('aud',this)" style="display:none"></label><div class="up-status" id="st-aud">—</div></div></div>
-    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
-      <button class="btn-calc" id="btn-calc" onclick="calcular()" disabled>⚡ Calcular KPIs</button>
-      <span class="calc-info" id="calc-info">Subí al menos 2 archivos para calcular</span>
+  <div class="upload-panel">
+    <div class="up-title">📂 Subir archivos para calcular
+      <span class="up-toggle" onclick="this.closest('.upload-panel').querySelector('.up-body').classList.toggle('open');this.textContent=this.textContent.includes('▼')?'▲ ocultar':'▼ expandir'">▼ expandir</span>
     </div>
-  </div>
-</div>
-
-<div class="intro">
-  <div class="intro-row">
-    <div class="intro-stat" onclick="togTip('tip-al')" style="padding:0 12px">
-      <div id="intro-resumen" style="font-size:8.5pt;color:#4db896;line-height:1.8">
-        <div>Total indicadores <span id="intro-total" style="font-family:DM Mono,monospace;font-weight:700;color:#e2e8f0">—</span></div>
-        <div>Con alerta <span id="intro-nal" style="font-family:DM Mono,monospace;font-weight:700;color:#f87171">—</span></div>
-        <div>En cero <span id="intro-nce" style="font-family:DM Mono,monospace;font-weight:700;color:#34d399">—</span></div>
-      </div>
-      <div class="isl" style="margin-top:4px">detalle ▾</div>
-      <div class="tip" id="tip-al" style="min-width:320px">
-        <div style="color:#fca5a5;font-size:8pt">Calculá para ver el detalle</div>
-      </div>
-      <div class="tip" id="tip-ce" style="min-width:280px;left:160px">
-        <div style="color:#6ee7b7;font-size:8pt">Calculá para ver el detalle</div>
+    <div class="up-body">
+      <div class="up-grid"><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">LOGISTICA Y OPERACIONES IF (respuestas)</div><div class="up-desc">Cierres de negocios y solicitudes de cupo</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('frm',this)" style="display:none"></label><div class="up-status" id="st-frm">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Cupos IF - HIRYO</div><div class="up-desc">PEDIR CUPO, SIN RESPUESTA, ORDEN ENVIADA</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('cup',this)" style="display:none"></label><div class="up-status" id="st-cup">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Saldos IF (Fertilizante)</div><div class="up-desc">Remitido pend. facturar, <2tn, fact. anticipada</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('sif',this)" style="display:none"></label><div class="up-status" id="st-sif">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Saldos HIRYO (Fertilizante)</div><div class="up-desc">Cliente final de los negocios HIRYO</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('shy',this)" style="display:none"></label><div class="up-status" id="st-shy">—</div></div><div class="up-row"><div class="up-ico">📄</div><div class="up-info"><div class="up-name">Auditoría ERP</div><div class="up-desc">Pedidos, Remitos, Facturas — reprocesos</div></div><label class="up-btn">Subir<input type="file" accept=".xlsx" onchange="fileLoaded('aud',this)" style="display:none"></label><div class="up-status" id="st-aud">—</div></div></div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+        <button class="btn-calc" id="btn-calc" onclick="calcular()" disabled>⚡ Calcular KPIs</button>
+        <span class="calc-info" id="calc-info">Subí al menos 2 archivos para calcular</span>
       </div>
     </div>
-    <div class="intro-charts">
-      <div class="ic"><div class="ic-t">Pedidos</div><div id="ic-ped"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-ped-s">—</div></div>
-      <div class="ic"><div class="ic-t">Remitos</div><div id="ic-rem"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-rem-s">—</div></div>
-      <div class="ic"><div class="ic-t">Facturas</div><div id="ic-fac"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-fac-s">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="resumen"    onclick="switchTab('resumen')">📋 Resumen</div>
+    <div class="tab"        data-tab="logistica"  onclick="switchTab('logistica')">🚛 Logísticos</div>
+    <div class="tab"        data-tab="administrativo" onclick="switchTab('administrativo')">🧾 Administrativos</div>
+    <div class="tab"        data-tab="control"    onclick="switchTab('control')">📊 Control</div>
+  </div>
+
+<div id="tab-resumen" class="tab-panel active">
+  <div class="nota" id="resumen-aviso" style="margin-bottom:16px">Calculá para ver el resumen actualizado.</div>
+  <div class="resumen-grid">
+
+    <div class="rcard" onclick="switchTab('logistica')">
+      <div class="rcard-title"><span class="rcard-icon">🚛</span>Indicadores Logísticos</div>
+      <div class="rcard-items">
+        <div class="ritem"><span class="ritem-label">Pedidos sin cargar</span><span class="ritem-val" id="rs-pedidos">—</span></div>
+        <div class="ritem"><span class="ritem-label">Solicitudes cupo sin tomar</span><span class="ritem-val" id="rs-cupos-sin">—</span></div>
+        <div class="ritem"><span class="ritem-label">Cupos pendientes de pedir</span><span class="ritem-val" id="rs-pedir">—</span></div>
+        <div class="ritem"><span class="ritem-label">Cupos sin respuesta</span><span class="ritem-val" id="rs-sinresp">—</span></div>
+        <div class="ritem"><span class="ritem-label">Pendiente de remitir</span><span class="ritem-val" id="rs-remitir">—</span></div>
+      </div>
+      <div class="rcard-footer">→ Ver detalle</div>
     </div>
-    <div class="intro-cols">
-      <div><div class="icol-t g">🏆 Hitos</div><div id="hitos-list"><div class="hito ok">Calculá para ver los hitos</div></div></div>
-      <div><div class="icol-t w">💡 Oportunidades</div><div id="opo-list"><div class="hito warn">Calculá para ver las oportunidades</div></div></div>
+
+    <div class="rcard" onclick="switchTab('administrativo')">
+      <div class="rcard-title"><span class="rcard-icon">🧾</span>Indicadores Administrativos</div>
+      <div class="rcard-items">
+        <div class="ritem"><span class="ritem-label">Negocios pend. facturar</span><span class="ritem-val" id="rs-fac-n">—</span></div>
+        <div class="ritem"><span class="ritem-label">TN sólidas pend.</span><span class="ritem-val" id="rs-fac-tn">—</span></div>
+        <div class="ritem"><span class="ritem-label">Cuenta y Orden</span><span class="ritem-val" id="rs-fac-cyo">—</span></div>
+        <div class="ritem"><span class="ritem-label">Facturación IF</span><span class="ritem-val" id="rs-fac-nrm">—</span></div>
+        <div class="ritem"><span class="ritem-label">Pend. fact. anticipada</span><span class="ritem-val" id="rs-fa">—</span></div>
+      </div>
+      <div class="rcard-footer">→ Ver detalle</div>
+    </div>
+
+    <div class="rcard" onclick="switchTab('control')">
+      <div class="rcard-title"><span class="rcard-icon">📊</span>Indicadores de Control</div>
+      <div class="rcard-items">
+        <div class="ritem"><span class="ritem-label">Ventas &lt;2tn (negocios)</span><span class="ritem-val" id="rs-v2n">—</span></div>
+        <div class="ritem"><span class="ritem-label">Compras &lt;2tn (negocios)</span><span class="ritem-val" id="rs-c2n">—</span></div>
+        <div class="ritem"><span class="ritem-label">% Reproceso pedidos</span><span class="ritem-val" id="rs-rpa">—</span></div>
+        <div class="ritem"><span class="ritem-label">% Reproceso remitos</span><span class="ritem-val" id="rs-rra">—</span></div>
+        <div class="ritem"><span class="ritem-label">FC ventas emitidas</span><span class="ritem-val" id="rs-fv">—</span></div>
+      </div>
+      <div class="rcard-footer">→ Ver detalle</div>
+    </div>
+
+  </div>
+</div><div id="tab-logistica" class="tab-panel">
+
+  <div class="sec" id="s-cal">
+    <div class="sec-hdr" onclick="tog('s-cal')">
+      <span class="si">🎯</span><span class="st">Calidad de Gestión</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-cal-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-cal-body">
+      <div class="nota">Subí los archivos y hacé clic en Calcular para ver los indicadores.</div>
     </div>
   </div>
-</div>
 
-<div class="sum">
-  <div class="sc" onclick="tog('s-rem')">
-    <div class="sc-lbl">🚛 Pend. Remitir <span class="sc-sem">sem ant</span></div>
-    <div class="sc-val" style="color:#9ca3af">—</div>
-    <div class="sc-sub">Sin calcular</div>
+  <div class="sec" id="s-cupos">
+    <div class="sec-hdr" onclick="tog('s-cupos')">
+      <span class="si">📥</span><span class="st">Cupos — Semana Actual</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-cupos-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-cupos-body">
+      <div class="nota">Cupos semana actual: PEDIR CUPO y SIN RESPUESTA.</div>
+    </div>
   </div>
-  <div class="sc" onclick="tog('s-cupos')">
-    <div class="sc-lbl">📥 Cupos sem actual</div>
-    <div class="sc-val" style="color:#9ca3af">—</div>
-    <div class="sc-sub">Sin calcular</div>
-  </div>
-  <div class="sc" onclick="tog('s-fac')">
-    <div class="sc-lbl">🧾 Remitido pend. fac.</div>
-    <div class="sc-val" style="color:#9ca3af">—</div>
-    <div class="sc-sub">Sin calcular</div>
-  </div>
-  <div class="sc" onclick="tog('s-peq')">
-    <div class="sc-lbl">✂️ Ajustables &lt;2tn</div>
-    <div class="sc-val" style="color:#9ca3af">—</div>
-    <div class="sc-sub">Sin calcular</div>
-  </div>
-</div>
 
-<div class="sec" id="s-cal">
-  <div class="sec-hdr" onclick="tog('s-cal')">
-    <span class="si">🎯</span><span class="st">Calidad de Gestión</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-cal-c">▼</span>
+  <div class="sec" id="s-rem">
+    <div class="sec-hdr" onclick="tog('s-rem')">
+      <span class="si">🚛</span><span class="st">Pendiente de Remitir — Sem Ant.</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-rem-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-rem-body">
+      <div class="nota">Cupos sem ant con ORDEN ENVIADA — con y sin remito.</div>
+    </div>
   </div>
-  <div class="sec-body open" id="s-cal-body">
-    <div class="nota">Subí los archivos y hacé clic en Calcular para ver los indicadores.</div>
-  </div>
-</div>
 
-<div class="sec" id="s-rem">
-  <div class="sec-hdr" onclick="tog('s-rem')">
-    <span class="si">🚛</span><span class="st">Pendiente de Remitir — Sem Ant.</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-rem-c">▼</span>
-  </div>
-  <div class="sec-body open" id="s-rem-body">
-    <div class="nota">Cupos de la semana anterior con ORDEN ENVIADA, divididos en con y sin remito.</div>
-  </div>
-</div>
+</div><div id="tab-administrativo" class="tab-panel">
 
-<div class="sec" id="s-cupos">
-  <div class="sec-hdr" onclick="tog('s-cupos')">
-    <span class="si">📥</span><span class="st">Cupos — Semana Actual</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-cupos-c">▼</span>
+  <div class="sec" id="s-fac">
+    <div class="sec-hdr" onclick="tog('s-fac')">
+      <span class="si">🧾</span><span class="st">Remitido Pendiente de Facturar</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-fac-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-fac-body">
+      <div class="nota">Saldos IF: todos los pedidos donde Entregado &gt; Facturado.</div>
+    </div>
   </div>
-  <div class="sec-body open" id="s-cupos-body">
-    <div class="nota">Cupos de la semana actual: PEDIR CUPO y SIN RESPUESTA.</div>
-  </div>
-</div>
 
-<div class="sec" id="s-fac">
-  <div class="sec-hdr" onclick="tog('s-fac')">
-    <span class="si">🧾</span><span class="st">Remitido Pendiente de Facturar</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-fac-c">▼</span>
-  </div>
-  <div class="sec-body open" id="s-fac-body">
-    <div class="nota">Todos los pedidos IF donde Entregado &gt; Facturado (sin corte de fecha).</div>
-  </div>
-</div>
+</div><div id="tab-control" class="tab-panel">
 
-<div class="sec" id="s-peq">
-  <div class="sec-hdr" onclick="tog('s-peq')">
-    <span class="si">✂️</span><span class="st">Pedidos Ajustables (&lt;2 tn)</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-peq-c">▼</span>
+  <div class="sec" id="s-peq">
+    <div class="sec-hdr" onclick="tog('s-peq')">
+      <span class="si">✂️</span><span class="st">Pedidos Ajustables (&lt;2 tn)</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-peq-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-peq-body">
+      <div class="nota">Ventas y compras con saldo menor a 2tn.</div>
+    </div>
   </div>
-  <div class="sec-body open" id="s-peq-body">
-    <div class="nota">Todos los pedidos con saldo menor a 2tn (sin corte de fecha).</div>
-  </div>
-</div>
 
-<div class="sec" id="s-prod">
-  <div class="sec-hdr" onclick="tog('s-prod')">
-    <span class="si">⚡</span><span class="st">Productividad</span>
-    <span class="bdg neu">Sin calcular</span>
-    <span class="caret open" id="s-prod-c">▼</span>
+  <div class="sec" id="s-prod">
+    <div class="sec-hdr" onclick="tog('s-prod')">
+      <span class="si">⚡</span><span class="st">Productividad</span>
+      <span class="bdg neu">Sin calcular</span>
+      <span class="caret open" id="s-prod-c">▼</span>
+    </div>
+    <div class="sec-body open" id="s-prod-body">
+      <div class="nota">Subí el archivo de Auditoría ERP para ver pedidos, remitos y facturas.</div>
+    </div>
   </div>
-  <div class="sec-body open" id="s-prod-body">
-    <div class="nota">Subí el archivo de Auditoría ERP para ver pedidos, remitos y facturas.</div>
-  </div>
-</div>
 
-<div class="sec" id="s-conc">
-  <div class="sec-hdr" onclick="tog('s-conc')">
-    <span class="si">🔗</span><span class="st">Conciliaciones</span>
-    <span class="bdg neu" id="badge-conc">— sin registrar</span>
-    <span class="caret" id="s-conc-c">▼</span>
-  </div>
-  <div class="sec-body" id="s-conc-body">
-    <div class="nota">Físicos: verificar contra planilla del proveedor. Virtuales: revisión de saldos.</div>
+  <div class="sec" id="s-conc">
+    <div class="sec-hdr" onclick="tog('s-conc')">
+      <span class="si">🔗</span><span class="st">Conciliaciones</span>
+      <span class="bdg neu" id="badge-conc">— sin registrar</span>
+      <span class="caret" id="s-conc-c">▼</span>
+    </div>
+    <div class="sec-body" id="s-conc-body">    <div class="nota">Físicos: verificar contra planilla del proveedor. Virtuales: revisión de saldos.</div>
     <div class="cgrid"><div class="crow"><span class="clbl">Pigüé (ACN)</span><select id="c-pigu" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-pigu" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Moviport</span><select id="c-movi" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-movi" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Hallpa (Arrecifes)</span><select id="c-hallpa" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-hallpa" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Sepor</span><select id="c-sepor" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-sepor" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Directo <span class="dep-virt">virtual</span></span><select id="c-directo" onchange="updConc()"><option value="">— sin registrar —</option><option value="NA" selected>No aplica</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-directo" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Cupeo <span class="dep-virt">virtual</span></span><select id="c-cupeo" onchange="updConc()"><option value="">— sin registrar —</option><option value="NA" selected>No aplica</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-cupeo" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Necochea</span><select id="c-neco" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-neco" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">TyS (Term. y Servicios)</span><select id="c-tys" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-tys" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">SLA Valentín Alsina</span><select id="c-sla" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-sla" class="cdif" placeholder="Diferencia tn" step="0.001"></div></div>
     <div class="det-t" style="margin-top:16px">📦 Proveedores con movimientos (últimos 4 años)</div>
     <div class="nota">Subí Saldos IF para ver los proveedores. Se actualizan al calcular.</div>
     <div id="prov-conc-grid" class="cgrid"></div>
+    </div>
   </div>
+
 </div>
 
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+
 // ── HELPERS UI ───────────────────────────────────────────────────────────
 function tog(id){
   var b=document.getElementById(id+'-body'),c=document.getElementById(id+'-c');
@@ -850,6 +879,11 @@ function calcular(){
         if(nota&&nota.classList.contains('nota'))nota.style.display='none';
       }
     }
+    // Actualizar resumen
+    updResumen({k1Det:k1Det,k2Det:k2Det,k3Det:k3Det,k5Det:k5Det,k7Det:k7Det,
+      k16Sin:k16Sin,k16Con:k16Con,k17Det:k17Det,
+      peqVRed:peqVRed,peqVNC:peqVNC,peqC:peqC},
+      prodStats,facCyo,facNrm,facTnCyo,facTnNrm,rpa,rra);
     // Hitos
     var hitosEl=document.getElementById('hitos-list');
     if(hitosEl){var hh='';
@@ -878,6 +912,42 @@ function calcular(){
     console.error(err);
   }
 }
+
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  var tabEl=document.querySelector('.tab[data-tab="'+name+'"]');
+  var panelEl=document.getElementById('tab-'+name);
+  if(tabEl)tabEl.classList.add('active');
+  if(panelEl)panelEl.classList.add('active');
+}
+
+function updResumen(R,prodStats,facCyo,facNrm,facTnCyo,facTnNrm,rpa,rra){
+  function sv(id,val,cls){var el=document.getElementById(id);if(!el)return;el.textContent=val;el.className='ritem-val '+(cls||'');}
+  // Logísticos
+  sv('rs-pedidos',  R.k1Det.length+R.k2Det.length>0?R.k2Det.length:0, R.k2Det&&R.k2Det.length>0?'red':'ok');
+  sv('rs-cupos-sin',R.k3Det?R.k3Det.length:0,       R.k3Det&&R.k3Det.length>0?'warn':'ok');
+  sv('rs-pedir',    R.k5Det?R.k5Det.length:0,        R.k5Det&&R.k5Det.length>0?'warn':'ok');
+  sv('rs-sinresp',  R.k7Det?R.k7Det.length:0,        R.k7Det&&R.k7Det.length>0?'warn':'ok');
+  sv('rs-remitir',  (R.k16Sin?R.k16Sin.length:0)+'/'+(R.k16Con?R.k16Con.length:0),
+    R.k16Sin&&R.k16Sin.length>0?'red':'ok');
+  // Administrativos
+  sv('rs-fac-n',   facCyo.length+facNrm.length, facCyo.length+facNrm.length>0?'warn':'ok');
+  sv('rs-fac-tn',  (facTnCyo+facTnNrm).toFixed(1)+' tn', facTnCyo+facTnNrm>0?'warn':'ok');
+  sv('rs-fac-cyo', facCyo.length, facCyo.length>0?'warn':'ok');
+  sv('rs-fac-nrm', facNrm.length, facNrm.length>0?'blue':'ok');
+  sv('rs-fa',      R.k17Det?R.k17Det.length:0,  R.k17Det&&R.k17Det.length>0?'red':'ok');
+  // Control
+  sv('rs-v2n', R.peqVRed&&R.peqVNC?(R.peqVRed.length+R.peqVNC.length):0, 'blue');
+  sv('rs-c2n', R.peqC?R.peqC.length:0, 'blue');
+  sv('rs-rpa', (rpa*100).toFixed(1)+'%', rpa>0.3?'red':'ok');
+  sv('rs-rra', (rra*100).toFixed(1)+'%', rra>0.3?'red':'ok');
+  sv('rs-fv',  prodStats.facVC, 'ok');
+  // Ocultar aviso
+  var av=document.getElementById('resumen-aviso');if(av)av.style.display='none';
+}
+
 </script>
 </body>
 </html>
