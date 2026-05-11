@@ -161,15 +161,16 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
 
 <div class="intro">
   <div class="intro-row">
-    <div class="intro-stat" onclick="togTip('tip-al')">
-      <div class="isv" style="color:#f87171">—</div>
-      <div class="isl">alertas ▾</div>
-      <div class="tip" id="tip-al"><div style="color:#fca5a5;font-size:8pt">Calculá para ver las alertas</div></div>
-    </div>
-    <div class="intro-stat" onclick="togTip('tip-ce')">
-      <div class="isv" style="color:#34d399">—</div>
-      <div class="isl">en cero ▾</div>
-      <div class="tip" id="tip-ce"><div style="color:#6ee7b7;font-size:8pt">Calculá para ver los indicadores OK</div></div>
+    <div class="intro-stat" onclick="togTip('tip-al')" style="padding:0 12px">
+      <div id="intro-resumen" style="font-size:8.5pt;color:#4db896;line-height:1.8">
+        <div>Total indicadores <span id="intro-total" style="font-family:DM Mono,monospace;font-weight:700;color:#e2e8f0">—</span></div>
+        <div>Con alerta <span id="intro-nal" style="font-family:DM Mono,monospace;font-weight:700;color:#f87171">—</span></div>
+        <div>En cero <span id="intro-nce" style="font-family:DM Mono,monospace;font-weight:700;color:#34d399">—</span></div>
+      </div>
+      <div class="isl" style="margin-top:4px">detalle ▾</div>
+      <div class="tip" id="tip-al" style="min-width:320px">
+        <div style="color:#fca5a5;font-size:8pt">Calculá para ver el detalle</div>
+      </div>
     </div>
     <div class="intro-charts">
       <div class="ic"><div class="ic-t">Pedidos</div><div id="ic-ped"><svg width="100" height="60"></svg></div><div class="ic-s" id="ic-ped-s">—</div></div>
@@ -281,6 +282,9 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
   <div class="sec-body" id="s-conc-body">
     <div class="nota">Físicos: verificar contra planilla del proveedor. Virtuales: revisión de saldos.</div>
     <div class="cgrid"><div class="crow"><span class="clbl">Pigüé (ACN)</span><select id="c-pigu" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-pigu" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Moviport</span><select id="c-movi" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-movi" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Hallpa (Arrecifes)</span><select id="c-hallpa" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-hallpa" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Sepor</span><select id="c-sepor" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-sepor" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Directo <span class="dep-virt">virtual</span></span><select id="c-directo" onchange="updConc()"><option value="">— sin registrar —</option><option value="NA" selected>No aplica</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-directo" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Cupeo <span class="dep-virt">virtual</span></span><select id="c-cupeo" onchange="updConc()"><option value="">— sin registrar —</option><option value="NA" selected>No aplica</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-cupeo" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">Necochea</span><select id="c-neco" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-neco" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">TyS (Term. y Servicios)</span><select id="c-tys" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-tys" class="cdif" placeholder="Diferencia tn" step="0.001"></div><div class="crow"><span class="clbl">SLA Valentín Alsina</span><select id="c-sla" onchange="updConc()"><option value="">— sin registrar —</option><option value="OK">Sin diferencias</option><option value="DIF">Con diferencias</option><option value="NO">No realizada</option></select><input type="number" id="d-sla" class="cdif" placeholder="Diferencia tn" step="0.001"></div></div>
+    <div class="det-t" style="margin-top:16px">📦 Proveedores con movimientos (últimos 4 años)</div>
+    <div class="nota">Subí Saldos IF para ver los proveedores. Se actualizan al calcular.</div>
+    <div id="prov-conc-grid" class="cgrid"></div>
   </div>
 </div>
 
@@ -761,9 +765,10 @@ function calcular(){
     var nAl=allAl.filter(function(v){return v>0}).length;
     var alertaItems=[['Pedidos sin cargar',k1Det.length],['Cupos sin cargar',k3Det.length],['Cupos pend. pedir',k5Det.length],['Cupos sin respuesta',k7Det.length],['Pend. fact. ant.',k17Det.length],['Reclamos',0]];
     var nCe=alertaItems.filter(function(x){return x[1]===0}).length;
-    var isvs=document.querySelectorAll('.isv');
-    if(isvs[0]){isvs[0].textContent=nAl;isvs[0].style.color=nAl>0?'#f87171':'#34d399';}
-    if(isvs[1])isvs[1].textContent=nCe;
+    var totalInd=allAl.length;
+    var elTotal=document.getElementById('intro-total');if(elTotal)elTotal.textContent=totalInd;
+    var elNal=document.getElementById('intro-nal');if(elNal)elNal.textContent=nAl;
+    var elNce=document.getElementById('intro-nce');if(elNce)elNce.textContent=nCe;
     // Charts intro
     var pc=barSVG([[' Alta',prodStats.pedAlt,'#3b82f6'],['Mod',prodStats.pedMod,'#f59e0b'],['Baja',prodStats.pedBaj,'#ef4444']]);
     var rc=barSVG([[' Alta',prodStats.remAlt,'#3b82f6'],['Mod',prodStats.remMod,'#f59e0b'],['Baja',prodStats.remBaj,'#ef4444']]);
@@ -790,6 +795,37 @@ function calcular(){
     scUpd('s-fac',facCyo.length+facNrm.length,(facCyo.length+facNrm.length)>0?'#d97706':'#059669',fN(facCyo.length>0?facTnCyo:0,1)+'tn CyO + '+fN(facTnNrm,1)+'tn Fac.IF');
     scUpd('s-peq',peqVRed.length+peqVNC.length+peqC.length,'#7c3aed','V: '+(peqVRed.length+peqVNC.length)+'/'+fN(peqVTn,1)+'tn · C: '+peqC.length+'/'+fN(peqCTn,1)+'tn');
 
+    // Proveedores para conciliación — únicos con movimientos en últimos 4 años
+    var provGrid=document.getElementById('prov-conc-grid');
+    if(provGrid&&rCpa.length>0){
+      var hace4=new Date();hace4.setFullYear(hace4.getFullYear()-4);
+      var provMap={};
+      rCpa.forEach(function(r){
+        var fe=toD(r['Fecha']);
+        if(!fe||fe<hace4)return;
+        var prov=String(r['Proveedor']||'').trim();
+        if(!prov||prov.length<2)return;
+        if(!provMap[prov])provMap[prov]=0;
+        provMap[prov]++;
+      });
+      var provList=Object.keys(provMap).sort(function(a,b){return provMap[b]-provMap[a];});
+      if(provList.length>0){
+        var ph='';
+        provList.forEach(function(p){
+          var sid='pc-'+p.replace(/[^a-zA-Z0-9]/g,'').slice(0,12);
+          ph+='<div class="crow"><span class="clbl" style="font-size:8pt">'+esc(p.slice(0,35))+'<span style="color:#9ca3af;font-size:7pt;margin-left:4px">('+provMap[p]+' mov.)</span></span>'
+            +'<select id="'+sid+'" onchange="updConc()"><option value="">— sin registrar —</option>'
+            +'<option value="OK">✅ Sin diferencias</option>'
+            +'<option value="DIF">⚠️ Con diferencias</option>'
+            +'<option value="NO">❌ No realizada</option></select>'
+            +'<input type="number" id="d'+sid+'" class="cdif" placeholder="Diferencia tn" step="0.001">'
+            +'</div>';
+        });
+        provGrid.innerHTML=ph;
+        var nota=provGrid.previousElementSibling;
+        if(nota&&nota.classList.contains('nota'))nota.style.display='none';
+      }
+    }
     // Hitos
     var hitosEl=document.getElementById('hitos-list');
     if(hitosEl){var hh='';
