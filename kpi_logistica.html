@@ -509,8 +509,9 @@ function calcular(){
       if(!accion.includes('CUPO'))return;
       var fe=toD(r['Marca temporal']);
       if(!inR(fe,sanI,sanF))return;
-      var nc=String(r['Num de Cupo']||'').trim();
-      if(nc&&nc!=='0')return;
+      // Sin procesar = columna A (NUM DE PEDIDO) no dice "Tomado"
+      var colA=String(r['NUM DE PEDIDO']||'').trim().toUpperCase();
+      if(colA==='TOMADO')return;
       k3Det.push([fmtD(fe),String(r['RAZON SOCIAL']||'').slice(0,28),String(r['Seleccione el Fertilizante']||'').slice(0,30),String(r['CANTIDAD (expresada en TN)']||''),String(r['PUERTO PREFERENCIAL DE CARGA']||'').slice(0,25),fmtD(toD(r['Fecha de Carga']))]);
     });
 
@@ -670,8 +671,8 @@ function calcular(){
     var calRows='';
     calRows+=renderKrow('k1','Pedidos sin cargar (hasta vie. 12hs)',k1Det.length,null,'alert','sem ant',tH(colsCierre,k1Det,'#dc2626'));
     calRows+=renderKrow('k2','Pedidos sin cargar (total)',k2Det.length,null,'alert','sem ant',tH(colsCierre,k2Det,'#dc2626'));
-    calRows+=renderKrow('k3','Cupos sem ant sin asignar en planilla',k3Det.length,null,'alert','sem ant',tH(colsCupFrm,k3Det,'#d97706'));
-    calRows+=renderKrow('k4','Cupos sem ant sin asignar (en plazo lunes)',k3Det.length,null,'alert','sem ant','');
+    calRows+=renderKrow('k3','Solicitudes cupo sem ant sin tomar',k3Det.length,null,'alert','sem ant',tH(colsCupFrm,k3Det,'#d97706'));
+    calRows+=renderKrow('k4','Solicitudes cupo sem ant sin tomar (lunes)',k3Det.length,null,'alert','sem ant','');
     calRows+=renderKrow('k5','Cupos pendientes de pedir (total)',k5Det.length,null,'alert','sem act',tH(colsCup,k5Det,'#dc2626'));
     calRows+=renderKrow('k6','Cupos pendientes de pedir (en plazo)',k5Det.length,null,'alert','sem act','');
     calRows+=renderKrow('k7','Cupos sin respuesta (total)',k7Det.length,null,'alert','sem act',tH(colsCup.concat(['Nro cupo']),k7Det,'#dc2626'));
