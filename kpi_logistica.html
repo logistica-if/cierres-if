@@ -285,7 +285,13 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
 </div>
 
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+// Event delegation para krows expandibles
+document.addEventListener('click',function(e){
+  var kr=e.target.closest('[data-kid]');
+  if(kr)togKD(kr.getAttribute('data-kid'));
+});
+</script>
 <script>
 // ── HELPERS UI ───────────────────────────────────────────────────────────
 function tog(id){
@@ -382,10 +388,10 @@ function renderKrow(id,label,val,antVal,tipo,semTag,detHtml){
   var sc=semTag==='sem act'?'#3b82f6':semTag==='todos'?'#8b5cf6':'#9ca3af';
   var stag='<span style="font-size:6.5pt;padding:1px 5px;border-radius:3px;background:'+sc+'20;color:'+sc+';font-weight:600;flex-shrink:0">'+semTag+'</span>';
   var hasD=detHtml&&v>0;
-  var onClick=hasD?(' onclick="togKD(''+id+'')" '):'';
-  var arrow=hasD?(' <span id="arr-'+id+'" style="font-size:8pt;color:'+clr+'">▶</span>'):'';
+  var dkid=hasD?' data-kid="'+id+'"':'';
+  var arrow=hasD?(' <span id="arr-'+id+'" style="font-size:8pt;color:'+clr+'">&#9654;</span>'):'';
   var det=hasD?('<div class="kdet" id="kdet-'+id+'">'+detHtml+'</div>'):'';
-  return '<div class="krow'+(hasD?' clickable':'')+'" id="krow-'+id+'" style="border-left:3px solid '+clr+';background:'+bg+'"'+onClick+'><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px"><span class="kn" style="color:'+clr+'">'+esc(label)+arrow+'</span>'+stag+'</div><div class="kv" id="kv-'+id+'" style="color:'+clr+'">'+fN(val)+'</div><div class="kant">ant: '+fN(antVal)+' '+tr+'</div>'+det+'</div>';
+  return '<div class="krow'+(hasD?' clickable':'')+'" id="krow-'+id+'"'+dkid+' style="border-left:3px solid '+clr+';background:'+bg+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px"><span class="kn" style="color:'+clr+'">'+esc(label)+arrow+'</span>'+stag+'</div><div class="kv" id="kv-'+id+'" style="color:'+clr+'">'+fN(val)+'</div><div class="kant">ant: '+fN(antVal)+' '+tr+'</div>'+det+'</div>';
 }
 function togKD(id){
   var d=document.getElementById('kdet-'+id),a=document.getElementById('arr-'+id);
