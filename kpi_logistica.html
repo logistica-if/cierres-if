@@ -829,9 +829,9 @@ function calcular(){
     var _icped=document.getElementById('ic-ped');if(_icped)_icped.innerHTML=pc;
     var _icrem=document.getElementById('ic-rem');if(_icrem)_icrem.innerHTML=rc;
     var _icfac=document.getElementById('ic-fac');if(_icfac)_icfac.innerHTML=fc2;
-    document.getElementById('ic-ped-s').textContent=(rpa*100).toFixed(1)+'% reproceso';
-    document.getElementById('ic-rem-s').textContent=(rra*100).toFixed(1)+'% reproceso';
-    document.getElementById('ic-fac-s').textContent=(prodStats.facVC+prodStats.facLiq+prodStats.facNC+prodStats.facOt)+' emitidas';
+    var _icpeds=document.getElementById('ic-ped-s');if(_icpeds)_icpeds.textContent=(rpa*100).toFixed(1)+'% reproceso';
+    var _icrems=document.getElementById('ic-rem-s');if(_icrems)_icrems.textContent=(rra*100).toFixed(1)+'% reproceso';
+    var _icfacs=document.getElementById('ic-fac-s');if(_icfacs)_icfacs.textContent=(prodStats.facVC+prodStats.facLiq+prodStats.facNC+prodStats.facOt)+' emitidas';
     // Tooltips
     var alTip='',ceTip='';
     allAl.forEach(function(v,i){
