@@ -546,13 +546,16 @@ function calcular(){
 
     // ── 3. CUPOS PENDIENTES DE PEDIR ─────────────────────────────────────
     // Planilla Cupos, sem ACT, PEDIR CUPO
-    var k5Det=[];
+    var k5Det=[],k6Det=[];
     rCup.forEach(function(r){
       var es=String(r['ESTADO DEL CUPO']||'').toUpperCase().trim();
       if(es!=='PEDIR CUPO')return;
       var fe=toD(r['FECHA DE CUPO']);
       if(!inR(fe,sacI,sacF))return;
-      k5Det.push([fmtD(fe),String(r['IF PROVEEDOR']||'').slice(0,25),String(r['IF CLIENTE']||'').slice(0,22),String(r['FERTILIZANTE']||'').slice(0,28),fN(r['CANTIDAD']),String(r['DEPOSITO']||''),String(r['DESTINO']||'').slice(0,20)]);
+      var rowK5=[fmtD(fe),String(r['IF PROVEEDOR']||'').slice(0,25),String(r['IF CLIENTE']||'').slice(0,22),String(r['FERTILIZANTE']||'').slice(0,28),fN(r['CANTIDAD']),String(r['DEPOSITO']||''),String(r['DESTINO']||'').slice(0,20)];
+      k5Det.push(rowK5);
+      // "en plazo" = fecha = lunes de sem act (sacI)
+      if(fe&&fe.toDateString()===sacI.toDateString())k6Det.push(rowK5);
     });
 
     // ── 4. CUPOS SIN RESPUESTA ────────────────────────────────────────────
@@ -600,8 +603,11 @@ function calcular(){
       }
       var diasD=fe?Math.round((new Date()-fe)/(864e5)):null;
       var row=[fmtD(fe),ped,cliShow,mod,art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',diasD!==null?diasD+'d':'-'];
-      if(isLiq)facLts+=pend;
-      else if(mod.toUpperCase().includes('CUENTA'))facCyo.push(row);
+      if(isLiq){
+        facLts+=pend;
+        // Los líquidos también van en tabla (facNrm con nota de lts)
+        facNrm.push(row);
+      } else if(mod.toUpperCase().includes('CUENTA'))facCyo.push(row);
       else facNrm.push(row);
     });
     var facTnCyo=facCyo.reduce(function(s,r){return s+(parseFloat(r[5])||0);},0);
@@ -722,7 +728,7 @@ function calcular(){
     calRows+=renderKrow('k3','Solicitudes cupo sem ant sin tomar',k3Det.length,null,'alert','sem ant',tH(colsCupFrm,k3Det,'#d97706'));
     calRows+=renderKrow('k4','Solicitudes cupo sem ant sin tomar (lunes)',k3Det.length,null,'alert','sem ant','');
     calRows+=renderKrow('k5','Cupos pendientes de pedir (total)',k5Det.length,null,'alert','sem act',tH(colsCup,k5Det,'#dc2626'));
-    calRows+=renderKrow('k6','Cupos pendientes de pedir (en plazo)',k5Det.length,null,'alert','sem act','');
+    calRows+=renderKrow('k6','Cupos pendientes de pedir (en plazo / hoy)',k6Det.length,null,'alert','sem act','');
     calRows+=renderKrow('k7','Cupos sin respuesta (total)',k7Det.length,null,'alert','sem act',tH(colsCup.concat(['Nro cupo']),k7Det,'#dc2626'));
     calRows+=renderKrow('k8','Cupos sin respuesta (en plazo)',k7Det.length,null,'alert','sem act','');
     calRows+=renderKrow('k17','Pend. factura anticipada',k17Det.length,null,'alert','sem ant',tH(['Fecha','Pedido','Cliente','Artículo','TN pend.'],k17Det,'#2563eb'));
@@ -930,8 +936,8 @@ function updResumen(R,prodStats,facCyo,facNrm,facTnCyo,facTnNrm,rpa,rra){
   sv('rs-cupos-sin',R.k3Det?R.k3Det.length:0,       R.k3Det&&R.k3Det.length>0?'warn':'ok');
   sv('rs-pedir',    R.k5Det?R.k5Det.length:0,        R.k5Det&&R.k5Det.length>0?'warn':'ok');
   sv('rs-sinresp',  R.k7Det?R.k7Det.length:0,        R.k7Det&&R.k7Det.length>0?'warn':'ok');
-  sv('rs-remitir',  (R.k16Sin?R.k16Sin.length:0)+'/'+(R.k16Con?R.k16Con.length:0),
-    R.k16Sin&&R.k16Sin.length>0?'red':'ok');
+  var remTot=(R.k16Sin?R.k16Sin.length:0)+(R.k16Con?R.k16Con.length:0);
+  sv('rs-remitir', remTot, remTot>0?'red':'ok');
   // Administrativos
   sv('rs-fac-n',   facCyo.length+facNrm.length, facCyo.length+facNrm.length>0?'warn':'ok');
   sv('rs-fac-tn',  (facTnCyo+facTnNrm).toFixed(1)+' tn', facTnCyo+facTnNrm>0?'warn':'ok');
