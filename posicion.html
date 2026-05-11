@@ -476,7 +476,8 @@ tr.rf td:first-child{border-left:3px solid #3b82f6}
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:16px;text-align:center">
         <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Ventas acumuladas</div>
-        <div style="font-size:40px;font-weight:800;color:#e2e8f0;font-family:monospace" id="rep-v-acum">—</div>
+        <div style="font-size:40px;font-weight:800;color:#e2e8f0;font-family:monospace" id="rep-v-acum"
+        <div style="margin-top:6px"><span onclick="togArtList()" style="font-size:9pt;color:#4db896;cursor:pointer;user-select:none" id="art-list-toggle">▶ ver artículos</span><div id="art-list-v" style="display:none;margin-top:6px;max-height:200px;overflow-y:auto;background:#061a12;border:1px solid #1e5240;border-radius:6px;padding:8px 10px;font-size:8pt;line-height:1.8"></div></div>>—</div>
         <div style="font-size:11px;color:#6b7280" id="rep-v-vs-ant">vs año anterior</div>
       </div>
       <div style="background:#0a2520;border:1px solid #1a4535;border-radius:10px;padding:14px">
@@ -1306,11 +1307,33 @@ function calcReporte(){
     var ul=REP_DATA.ventas.concat(REP_DATA.compras).map(function(r){return r.fecha}).filter(Boolean).sort();
     avisoEl.textContent='Sin datos para el rango. Datos hasta '+( ul[ul.length-1]||'--')+'. Cambia las fechas o actualiza el archivo.';
   }else{avisoEl.style.display='none';}
-  document.getElementById('rep-v-sem').textContent=fmt2(vSemTn);
+  // Generar lista de artículos del acumulado
+  var artListEl=document.getElementById('art-list-v');
+  if(artListEl){
+    var artMap={};
+    vAnio.forEach(function(r){
+      var isLiq=(r.art||'').toUpperCase().includes('(LITROS)')||(r.art||'').toUpperCase().includes('(LTS)');
+      if(!artMap[r.art])artMap[r.art]={tn:0,isLiq:isLiq};
+      artMap[r.art].tn+=r.tn;
+    });
+    var artEntries=Object.entries(artMap).sort(function(a,b){return b[1].tn-a[1].tn});
+    var totalSol=artEntries.filter(function(e){return !e[1].isLiq}).reduce(function(s,e){return s+e[1].tn},0);
+    var totalLiq=artEntries.filter(function(e){return e[1].isLiq}).reduce(function(s,e){return s+e[1].tn},0);
+    artListEl.innerHTML=artEntries.map(function(e){
+      var isLiq=e[1].isLiq;
+      var valStr=fmt2(e[1].tn,2)+' tn';
+      var clr=isLiq?'#3b82f6':'#4db896';
+      return '<div style="display:flex;justify-content:space-between;border-bottom:.3px solid #1e5240;padding:2px 0">'+'<span style="color:#9ca3af">'+String(e[0]||'').substring(0,38).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'+'<span style="color:'+clr+';font-weight:600">'+valStr+'</span>'+'</div>';
+    }).join('')
+    +'<div style="border-top:1px solid #4db896;margin-top:4px;padding-top:4px;display:flex;justify-content:space-between">'+'<span style="color:#e2e8f0;font-weight:700">TOTAL</span>'+'<span style="color:#e2e8f0;font-weight:700">'+fmt2(totalSol+totalLiq,1)+' tn'+'</span>'+'</div>';
+    var toggle=document.getElementById('art-list-toggle');
+    if(toggle)toggle.textContent=(artEntries.length>0?'▶ '+artEntries.length+' artículos (clic para ver)':'▶ sin artículos');
+  }
+  document.getElementById('rep-v-sem').textContent=fmt2(vSemTn+vSemKlts,1);
   document.getElementById('rep-v-sem-klts').textContent=fmt2(vSemKlts);
-  document.getElementById('rep-v-sem-liq').style.display=vSemKlts>0.001?'block':'none';
+  document.getElementById('rep-v-sem-liq').style.display='none';
   
-  document.getElementById('rep-v-acum').textContent=fmt2(vAnioTn)+(vAnioKlts>0.001?' + '+fmt2(vAnioKlts)+' k.lts liq.':'');
+  document.getElementById('rep-v-acum').textContent=fmt2(vAnioTn+vAnioKlts,1);
   document.getElementById('rep-c-sem').textContent=fmt2(cSemTn);
   
   document.getElementById('rep-c-acum').textContent=fmt2(cAnioTn);
@@ -2123,13 +2146,13 @@ function generarWhatsApp() {
 
   // Ventas
   var vHtml = '<div class="kr">'+
-    '<div class="kc"><div class="kl">Ventas semana</div><div class="kv g">'+fw(vTnSol)+'</div>'+(vTnLts>0?'<div style="font-size:9pt;color:#3b82f6">+ '+fw(vTnLts*1000,0)+' k.lts</div>':'')+'<div class="ks">toneladas</div></div>'+
+    '<div class="kc"><div class="kl">Ventas semana</div><div class="kv g">'+fw(vTnSol+vTnLts,1)+'</div>'<div class="ks">toneladas</div></div>'+
     '<div class="kc"><div class="kl">PPP semana</div><div class="kv g" style="font-size:15pt">U$S '+Math.round(vPPP)+'</div><div class="ks">por tonelada</div></div>'+
     '</div>'+
     '<table><thead><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
-    byArtV.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#1a9168">'+(isL?fw(e[1]*1000,0)+' k.lts':fw(e[1]))+'</td></tr>';}).join('')+
+    byArtV.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#1a9168">'+fw(e[1],2)+'</td></tr>';}).join('')+
     '</tbody></table>'+
-    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av g">'+fw(v26.filter(function(r){return !isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0))+' tn'+(v26.filter(function(r){return isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0)>0?' + '+fw(v26.filter(function(r){return isLiq2(r.art)}).reduce(function(s,r){return s+r.tn},0)*1000,0)+' k.lts':'')+'</div></div>';
+    '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av g">'+fw(v26.reduce(function(s,r){return s+r.tn},0),1)+' tn'+'</div></div>';
 
   // Compras
   var cHtml = '<div class="kr">'+
@@ -2137,7 +2160,7 @@ function generarWhatsApp() {
     '<div class="kc"><div class="kl">PPP semana</div><div class="kv a" style="font-size:15pt">U$S '+Math.round(cPPP)+'</div><div class="ks">por tonelada</div></div>'+
     '</div>'+
     '<table><thead class="ham"><tr><th>Artículo</th><th class="r">tn</th></tr></thead><tbody>'+
-    byArtC.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#d97706">'+(isL?fw(e[1]*1000,0)+' k.lts':fw(e[1]))+'</td></tr>';}).join('')+
+    byArtC.map(function(e){var isL=(e[0]||'').toUpperCase().includes('(LITROS)')||(e[0]||'').toUpperCase().includes('(LTS)');return '<tr><td>'+we(e[0].substring(0,36))+'</td><td class="r" style="color:#d97706">'+fw(e[1],2)+'</td></tr>';}).join('')+
     '</tbody></table>'+
     '<div class="ac"><div class="al">Acumulado '+viernes.substring(0,4)+'</div><div class="av a">'+fw(c26Tn)+' tn</div></div>';
 
@@ -2181,6 +2204,14 @@ function generarWhatsApp() {
 
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrar(); cerrarModal('mbg-upload'); cerrarModal('mbg-fijar') } });
+
+function togArtList(){
+  var d=document.getElementById('art-list-v'),t=document.getElementById('art-list-toggle');
+  if(!d)return;
+  var open=d.style.display!=='none';
+  d.style.display=open?'none':'block';
+  if(t){var n=parseInt(t.textContent)||0;t.textContent=(open?'▶ ':'▼ ')+t.textContent.replace(/^[▶▼]\s*/,'');}
+}
 </script>
 </body>
 </html>
