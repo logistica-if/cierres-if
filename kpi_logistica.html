@@ -620,25 +620,44 @@ function calcular(){
     // Del archivo de auditoría, usar las fechas del archivo (sem ANT)
     var prodStats={pedAlt:0,pedMod:0,pedBaj:0,remAlt:0,remMod:0,remBaj:0,facVC:0,facLiq:0,facNC:0,facOt:0};
     var pedUsrMap={},remUsrMap={};
-    var modRows=[],bajRows=[];
+    // Acumuladores para agrupar por documento (nro+tipo+usr)
+    var modMap={},bajMap={};
     rAudPed.forEach(function(r){
       var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim(),nro=String(r[3]||'').trim(),fe=r[1];
       var fes=fe?new Date(fe).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
       if(ac==='Alta')prodStats.pedAlt++;
-      else if(ac==='Modifica'){prodStats.pedMod++;modRows.push({usr:usr,nro:nro,fes:fes,tipo:'ped'});}
+      else if(ac==='Modifica'){
+        prodStats.pedMod++;
+        var key=nro+'|ped|'+usr;
+        if(!modMap[key])modMap[key]={usr:usr,nro:nro,fes:fes,tipo:'ped',cnt:0};
+        modMap[key].cnt++;
+      }
       else if(ac==='Baja'){prodStats.pedBaj++;}
       if(!pedUsrMap[usr])pedUsrMap[usr]={alt:0,mod:0,baj:0};
       if(ac==='Alta')pedUsrMap[usr].alt++;else if(ac==='Modifica')pedUsrMap[usr].mod++;else if(ac==='Baja')pedUsrMap[usr].baj++;
     });
+    var modRows=Object.values(modMap);
     rAudRem.forEach(function(r){
       var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim(),nro=String(r[3]||'').trim(),fe=r[1];
       var fes=fe?new Date(fe).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
       if(ac==='Alta')prodStats.remAlt++;
-      else if(ac==='Modifica'){prodStats.remMod++;bajRows.push({usr:usr,nro:nro,fes:fes,tipo:'rem-mod'});}
-      else if(ac==='Baja'){prodStats.remBaj++;bajRows.push({usr:usr,nro:nro,fes:fes,tipo:'rem-baj'});}
+      else if(ac==='Modifica'){
+        prodStats.remMod++;
+        var key=nro+'|rem-mod|'+usr;
+        if(!modMap[key])modMap[key]={usr:usr,nro:nro,fes:fes,tipo:'rem-mod',cnt:0};
+        modMap[key].cnt++;
+      }
+      else if(ac==='Baja'){
+        prodStats.remBaj++;
+        var key2=nro+'|rem-baj|'+usr;
+        if(!bajMap[key2])bajMap[key2]={usr:usr,nro:nro,fes:fes,tipo:'rem-baj',cnt:0};
+        bajMap[key2].cnt++;
+      }
       if(!remUsrMap[usr])remUsrMap[usr]={alt:0,mod:0,baj:0};
       if(ac==='Alta')remUsrMap[usr].alt++;else if(ac==='Modifica')remUsrMap[usr].mod++;else if(ac==='Baja')remUsrMap[usr].baj++;
     });
+    var bajRows=Object.values(modMap).filter(function(r){return r.tipo==='rem-mod'||r.tipo==='rem-baj';}).concat(Object.values(bajMap));
+    modRows=modRows.filter(function(r){return r.tipo==='ped';});
     var facDet1=[];
     rAudFac.forEach(function(r){
       var ac=String(r[2]||'').trim(),nro=String(r[3]||'').trim(),usr=String(r[0]||'').trim();
@@ -692,7 +711,7 @@ function calcular(){
     // ─ PENDIENTE REMITIR ─
     var remHTML='';
     if(k16Sin.length>0){
-      remHTML+='<div class="det-t" style="color:#dc2626">Sin remito — '+k16Sin.length+'</div>'+tH(colsCup,'#dc2626',k16Sin);
+      remHTML+='<div class="det-t" style="color:#dc2626">Sin remito — '+k16Sin.length+'</div>'+tH(colsCup,k16Sin,'#dc2626');
     } else {
       remHTML+='<div class="nota ok">Todos los cupos de la semana tienen remito.</div>';
     }
@@ -751,7 +770,8 @@ function calcular(){
     modRows.concat(bajRows).forEach(function(r){
       var motivos=r.tipo==='ped'?MPED:MREM;
       var clr=r.tipo==='ped'?'#f59e0b':(r.tipo==='rem-baj'?'#ef4444':'#f59e0b');
-      var tipo=r.tipo==='ped'?'Ped mod.':r.tipo==='rem-baj'?'Rem baja':'Rem mod.';
+      var tipoBase=r.tipo==='ped'?'Ped mod.':r.tipo==='rem-baj'?'Rem baja':'Rem mod.';
+      var tipo=tipoBase+(r.cnt>1?' x'+r.cnt:'');
       var opts=motivos.map(function(m){return '<option>'+m+'</option>';}).join('');
       mHTML+='<div class="mrow"><span class="musr">'+esc(r.usr.slice(0,14))+'</span><span class="mtipo" style="color:'+clr+'">'+tipo+'</span><span class="mnro">'+esc(r.nro)+'</span><span class="mfecha">'+esc(r.fes)+'</span><select class="msel" onchange="updChart()"><option value="">—</option>'+opts+'</select></div>';
     });
