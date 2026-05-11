@@ -285,13 +285,7 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
 </div>
 
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-// Event delegation para krows expandibles
-document.addEventListener('click',function(e){
-  var kr=e.target.closest('[data-kid]');
-  if(kr)togKD(kr.getAttribute('data-kid'));
-});
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── HELPERS UI ───────────────────────────────────────────────────────────
 function tog(id){
@@ -305,7 +299,11 @@ function togTip(id){
   var t=document.getElementById(id);if(t)t.style.display=t.style.display==='block'?'none':'block';
 }
 document.addEventListener('click',function(e){
+  // Cerrar tooltips del intro
   if(!e.target.closest('.intro-stat'))document.querySelectorAll('.tip').forEach(function(t){t.style.display='none';});
+  // Expandir/colapsar krows con detalle
+  var kr=e.target.closest('[data-kid]');
+  if(kr)togKD(kr.getAttribute('data-kid'));;
 });
 
 function updConc(){
@@ -357,6 +355,12 @@ function rWB(wb,sh){
   var key=Object.keys(wb.Sheets).find(function(k){return sh==='*'||k.toLowerCase().includes(sh.toLowerCase())});
   return key?XLSX.utils.sheet_to_json(wb.Sheets[key],{defval:''}):[];
 }
+function rWBArr(wb,sh){
+  var key=Object.keys(wb.Sheets).find(function(k){return sh==='*'||k.toLowerCase().includes(sh.toLowerCase());});
+  if(!key)return [];
+  var rows=XLSX.utils.sheet_to_json(wb.Sheets[key],{header:1,defval:''});
+  return rows.filter(function(r){return Array.isArray(r)&&r.some(function(v){return v!=='';});});
+}
 function toN(v){return parseFloat(String(v||0).replace(',','.'))||0;}
 function toD(v){if(!v)return null;var d=new Date(v);return isNaN(d)?null:d;}
 function fmtD(d){if(!d)return '';try{return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return String(d).slice(0,10);}}
@@ -370,14 +374,15 @@ function esLiq(a){var u=(a||'').toUpperCase();return u.includes('(LITROS)')||u.i
 // ── TABLA HTML ───────────────────────────────────────────────────────────
 function tH(cols,rows,color,limit){
   limit=limit||60;color=color||'#135845';
-  if(!rows||!rows.length)return '<p class="empty">Sin registros</p>';
+  if(!Array.isArray(rows))rows=[];
+  if(!rows.length)return '<p class="empty">Sin registros</p>';
   var h='<div class="tbl-wrap"><table class="dt" style="--tc:'+color+'"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>';
   rows.slice(0,limit).forEach(function(r){h+='<tr>'+r.map(function(v){return '<td>'+esc(String(v||'-').slice(0,45))+'</td>';}).join('')+'</tr>';});
   if(rows.length>limit)h+='<tr><td colspan="'+cols.length+'" style="text-align:center;color:#9ca3af;font-style:italic">... y '+(rows.length-limit)+' más</td></tr>';
   return h+'</tbody></table></div>';
 }
 
-// ── RENDERIZAR KPI ROW ───────────────────────────────────────────────────
+// ── RENDERIZAR KPI ROW ─────────────────────────────────────────────────────
 function renderKrow(id,label,val,antVal,tipo,semTag,detHtml){
   var v=parseFloat(val)||0;
   var clr=tipo==='num'?(v>0?'#2563eb':'#059669'):(v===0?'#059669':v<=2?'#d97706':'#dc2626');
@@ -417,6 +422,15 @@ function barSVG(data,w,h){
 }
 
 // ── CALCULAR ─────────────────────────────────────────────────────────────
+
+function scUpd(sid,val,color,sub){
+  var els=document.querySelectorAll('.sc');
+  var el=null;
+  els.forEach(function(e){if(e.getAttribute('onclick')&&e.getAttribute('onclick').includes(sid))el=e;});
+  if(!el)return;
+  var v=el.querySelector('.sc-val');if(v){v.textContent=val;v.style.color=color;}
+  var s=el.querySelector('.sc-sub');if(s&&sub)s.textContent=sub;
+}
 function calcular(){
   var btn=document.getElementById('btn-calc'),inf=document.getElementById('calc-info');
   btn.disabled=true;inf.textContent='Calculando...';
@@ -436,9 +450,9 @@ function calcular(){
     var rCpa=WB.sif?rWB(WB.sif,'Compras'):[];
     var rHVta=WB.shy?rWB(WB.shy,'Ventas'):[];
     var rHCpa=WB.shy?rWB(WB.shy,'Compras'):[];
-    var rAudPed=WB.aud?rWB(WB.aud,'Pedidos'):[];
-    var rAudRem=WB.aud?rWB(WB.aud,'Remitos'):[];
-    var rAudFac=WB.aud?rWB(WB.aud,'Facturas'):[];
+    var rAudPed=WB.aud?rWBArr(WB.aud,'Pedidos'):[];
+    var rAudRem=WB.aud?rWBArr(WB.aud,'Remitos'):[];
+    var rAudFac=WB.aud?rWBArr(WB.aud,'Facturas'):[];
 
     // ── ÍNDICE HIRYO: numPedIF → clienteHiryo ────────────────────────────
     // Paso 1: NroInterno de Venta IF a HIRYO = Numero Compra HIRYO a IF
@@ -647,8 +661,8 @@ function calcular(){
     var calRows='';
     calRows+=renderKrow('k1','Pedidos sin cargar (hasta vie. 12hs)',k1Det.length,null,'alert','sem ant',tH(colsCierre,k1Det,'#dc2626'));
     calRows+=renderKrow('k2','Pedidos sin cargar (total)',k2Det.length,null,'alert','sem ant',tH(colsCierre,k2Det,'#dc2626'));
-    calRows+=renderKrow('k3','Cupos sin cargar a planilla (total)',k3Det.length,null,'alert','sem ant',tH(colsCupFrm,k3Det,'#d97706'));
-    calRows+=renderKrow('k4','Cupos sin cargar a planilla (en plazo)',k3Det.length,null,'alert','sem ant','');
+    calRows+=renderKrow('k3','Cupos sem ant sin asignar en planilla',k3Det.length,null,'alert','sem ant',tH(colsCupFrm,k3Det,'#d97706'));
+    calRows+=renderKrow('k4','Cupos sem ant sin asignar (en plazo lunes)',k3Det.length,null,'alert','sem ant','');
     calRows+=renderKrow('k5','Cupos pendientes de pedir (total)',k5Det.length,null,'alert','sem act',tH(colsCup,k5Det,'#dc2626'));
     calRows+=renderKrow('k6','Cupos pendientes de pedir (en plazo)',k5Det.length,null,'alert','sem act','');
     calRows+=renderKrow('k7','Cupos sin respuesta (total)',k7Det.length,null,'alert','sem act',tH(colsCup.concat(['Nro cupo']),k7Det,'#dc2626'));
@@ -668,7 +682,7 @@ function calcular(){
     // ─ PENDIENTE REMITIR ─
     var remHTML='';
     if(k16Sin.length>0){
-      remHTML+='<div class="det-t" style="color:#dc2626">Sin remito — '+k16Sin.length+'</div>'+tH(colsCup,k16Sin,'#dc2626');
+      remHTML+='<div class="det-t" style="color:#dc2626">Sin remito — '+k16Sin.length+'</div>'+tH(colsCup,'#dc2626',k16Sin);
     } else {
       remHTML+='<div class="nota ok">Todos los cupos de la semana tienen remito.</div>';
     }
@@ -738,8 +752,11 @@ function calcular(){
     document.getElementById('s-prod-body').innerHTML=prodHTML;
 
     // ─ INTRO ─
-    var allAl=[k1Det.length,k2Det.length,k3Det.length,k5Det.length,k7Det.length,(facCyo.length+facNrm.length),k16Sin.length,k17Det.length];
-    var nAl=allAl.filter(function(v){return v>0}).length+(peqVTn>0?1:0)+(peqCTn>0?1:0);
+    // Conteo de alertas real — basado en todos los indicadores calculados
+    var allAl=[k1Det.length,k2Det.length,k3Det.length,k5Det.length,k7Det.length,
+      (facCyo.length+facNrm.length),(k16Sin.length+k16Con.length),k17Det.length,
+      peqVRed.length+peqVNC.length,peqC.length];
+    var nAl=allAl.filter(function(v){return v>0}).length;
     var nCe=allAl.filter(function(v){return v===0}).length;
     var isvs=document.querySelectorAll('.isv');
     if(isvs[0]){isvs[0].textContent=nAl;isvs[0].style.color=nAl>0?'#f87171':'#34d399';}
@@ -760,12 +777,7 @@ function calcular(){
     document.getElementById('tip-al').innerHTML=alTip||'<div style="color:#6ee7b7;font-size:8pt">Sin alertas</div>';
     document.getElementById('tip-ce').innerHTML=ceTip||'<div style="color:#fca5a5;font-size:8pt">Todo tiene alertas</div>';
     // Tarjetas resumen
-    function scUpd(sid,val,color,sub){
-      var el=document.querySelector('.sc[onclick*=\"'+sid+'\"]');if(!el)return;
-      var v=el.querySelector('.sc-val');if(v){v.textContent=val;v.style.color=color;}
-      var s=el.querySelector('.sc-sub');if(s&&sub)s.textContent=sub;
-    }
-    scUpd('s-rem',k16Sin.length,k16Sin.length>0?'#dc2626':'#059669',k16Sin.length+' sin rem · '+k16Con.length+' con rem');
+    scUpd('s-rem',k16Sin.length+k16Con.length,k16Sin.length>0?'#dc2626':'#059669',k16Sin.length+' sin rem · '+k16Con.length+' con rem ✅');
     scUpd('s-cupos',k5Det.length+k7Det.length,(k5Det.length+k7Det.length)>0?'#d97706':'#059669','Pedir: '+k5Det.length+' · Sin resp: '+k7Det.length);
     scUpd('s-fac',facCyo.length+facNrm.length,(facCyo.length+facNrm.length)>0?'#d97706':'#059669',fN(facCyo.length>0?facTnCyo:0,1)+'tn CyO + '+fN(facTnNrm,1)+'tn Fac.IF');
     scUpd('s-peq',peqVRed.length+peqVNC.length+peqC.length,'#7c3aed','V: '+(peqVRed.length+peqVNC.length)+'/'+fN(peqVTn,1)+'tn · C: '+peqC.length+'/'+fN(peqCTn,1)+'tn');
