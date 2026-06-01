@@ -757,111 +757,214 @@ function calcFletes(){
   var wbF=WB.flt,wbR=WB.fra;
   if(!wbF&&!wbR)return;
 
-  function procesarIF(){
-    if(!wbF)return[];
-    var raw=getFleteRows(wbF).map(parseFleteRow);
-    // Dedup por nro — quedarse con la de mayor tariC (venta)
-    return dedup(raw.filter(function(r){return r.nro&&r.cant>0;}),
-      function(r){return r.nro;},
-      function(r){return r.tariC;});
+  function getRows(wb){
+    if(!wb)return[];
+    if(wb._su)return parseSU(wb._text);
+    return rWB(wb,'*');
   }
 
-  function procesarRamon(){
-    if(!wbR)return[];
-    var raw=getFleteRows(wbR).map(parseFleteRow);
-    return dedup(raw.filter(function(r){return r.nro&&r.cant>0;}),
-      function(r){return r.nro;},
-      function(r){return r.tariC;});
+  function gc(obj,names){
+    for(var ni=0;ni<names.length;ni++){
+      var keys=Object.keys(obj);
+      for(var ki=0;ki<keys.length;ki++){
+        if(keys[ki].toLowerCase().includes(names[ni].toLowerCase()))return obj[keys[ki]];
+      }
+    }
+    return '';
   }
 
-  var rowsIF=procesarIF();
-  var rowsRA=procesarRamon();
+  function parseRow(r){
+    var nro=String(gc(r,['mero','Numero'])||'').trim();
+    var fecha=String(gc(r,['Fecha'])||'').trim();
+    var cant=parseFloat(String(gc(r,['Cant'])||'0').replace(',','.'))||0;
+    var tariC=parseFloat(String(gc(r,['Tari. Clie'])||'0').replace(',','.'))||0;
+    var tariT=parseFloat(String(gc(r,['Tari. Trans'])||'0').replace(',','.'))||0;
+    var cliente=String(gc(r,['Cliente'])||'').trim();
+    var merc=String(gc(r,['Mercader','Mercanc'])||'').trim();
+    var dest=String(gc(r,['Destino'])||'').trim();
+    var transport=String(gc(r,['Transporte'])||'').trim();
+    var fechaDt=fecha?new Date(fecha.split('/').reverse().join('-')):null;
+    var mes=(fechaDt&&!isNaN(fechaDt))?(fechaDt.getFullYear()+'-'+String(fechaDt.getMonth()+1).padStart(2,'0')):'';
+    var margen=(tariC-tariT)*cant;
+    var costo=tariT*cant;
+    var ingreso=tariC*cant;
+    return {nro:nro,fecha:fecha,mes:mes,cant:cant,tariC:tariC,tariT:tariT,
+      margen:margen,costo:costo,ingreso:ingreso,
+      cliente:cliente,merc:merc,dest:dest,transport:transport};
+  }
 
-  // Agrupar por mes
-  function byMes(rows,factor){
+  // Dedup: para cada N° remito, quedarse con la de mayor tariC
+  function dedup(rows){
+    var map={};
+    rows.forEach(function(r){
+      if(!r.nro||!r.cant)return;
+      if(!map[r.nro]||r.tariC>map[r.nro].tariC)map[r.nro]=r;
+    });
+    return Object.values(map);
+  }
+
+  function categorize(rows){
+    var fab=[],ventaGan=[],ventaPer=[],soloCli=[];
+    rows.forEach(function(r){
+      if(r.tariC===0&&r.tariT>0)fab.push(r);          // solo pagamos al fletero
+      else if(r.tariC>0&&r.tariT>0&&r.margen>=0)ventaGan.push(r);  // ganamos
+      else if(r.tariC>0&&r.tariT>0&&r.margen<0)ventaPer.push(r);   // perdemos
+      else if(r.tariC>0&&r.tariT===0)soloCli.push(r);  // solo tarifa cliente
+    });
+    return {fab:fab,ventaGan:ventaGan,ventaPer:ventaPer,soloCli:soloCli};
+  }
+
+  function byMes(rows,field){
     var m={};
     rows.forEach(function(r){
       if(!r.mes)return;
-      if(!m[r.mes])m[r.mes]={mes:r.mes,remitos:0,tn:0,margen:0};
-      m[r.mes].remitos++;
-      m[r.mes].tn+=r.cant;
-      m[r.mes].margen+=r.margen*(factor||1);
+      if(!m[r.mes])m[r.mes]={mes:r.mes,n:0,tn:0,val:0};
+      m[r.mes].n++;m[r.mes].tn+=r.cant;m[r.mes].val+=(field==='margen'?r.margen:field==='costo'?r.costo:r.ingreso);
     });
     return Object.values(m).sort(function(a,b){return a.mes>b.mes?1:-1;});
   }
 
-  var mensIF=byMes(rowsIF,1);
-  var mensRA=byMes(rowsRA,0.20); // IF cobra 20%
-
-  function tablaMes(data,titulo,color){
+  function tabMes(data,valLabel,color){
     if(!data.length)return '<p class="empty">Sin datos</p>';
-    var total=data.reduce(function(s,r){return s+r.margen;},0);
+    var total=data.reduce(function(s,r){return s+r.val;},0);
+    var tnTot=data.reduce(function(s,r){return s+r.tn;},0);
     var rows=data.map(function(r){
-      var mesLabel=r.mes.split('-').reverse().join('/');
-      var clr=r.margen>=0?'#059669':'#dc2626';
-      return [mesLabel,r.remitos,fN(r.tn,1),
-        '<span style="color:'+clr+';font-weight:700">'+fmtPesos(r.margen)+'</span>'];
+      var clr=r.val>=0?'#059669':'#dc2626';
+      return [r.mes,r.n,fN(r.tn,1),'<span style="color:'+clr+';font-weight:700">'+fmtPesos(r.val)+'</span>'];
     });
-    return tH(['Mes','Remitos','TN',titulo],rows,color)+
-      '<div class="nota '+(total>=0?'ok':'red')+'" style="margin-top:6px">Total: <strong>'+fmtPesos(total)+'</strong></div>';
+    return tH(['Mes','Remitos','TN',valLabel],rows,color)
+      +'<div class="nota '+(total>=0?'ok':'red')+'" style="margin-top:5px">Total: <strong>'+fmtPesos(total)+'</strong> | '+fN(tnTot,1)+' tn</div>';
   }
+
+  function tabDetalle(rows,color,limit){
+    if(!rows.length)return '<p class="empty">Sin registros</p>';
+    var data=rows.slice(0,limit||40).map(function(r){
+      var clr=r.margen>=0?'#059669':'#dc2626';
+      return [r.fecha,r.nro.slice(0,18),r.cliente.slice(0,24),fN(r.cant,1),
+        fN(r.tariC,2),fN(r.tariT,2),'<span style="color:'+clr+'">'+fmtPesos(r.margen)+'</span>'];
+    });
+    return tH(['Fecha','N° Remito','Cliente','TN','T.Cli','T.Trans','Margen'],data,color,40);
+  }
+
+  // ── PROCESAR IF ─────────────────────────────────────────────────────────────
+  var rowsIF=wbF?dedup(getRows(wbF).map(parseRow)):[];
+  var catIF=categorize(rowsIF);
+
+  var totFabCosto=catIF.fab.reduce(function(s,r){return s+r.costo;},0);
+  var totVGan=catIF.ventaGan.reduce(function(s,r){return s+r.margen;},0);
+  var totVPer=catIF.ventaPer.reduce(function(s,r){return s+r.margen;},0);
+  var netoVenta=totVGan+totVPer;
 
   var bodyIF=document.getElementById('s-flt-if-body');
-  var bodyRA=document.getElementById('s-flt-ra-body');
-  var bodyRes=document.getElementById('s-flt-res-body');
-
   if(bodyIF){
-    bodyIF.innerHTML='<div class="nota blu">'+rowsIF.length+' remitos únicos (de '+
-      getFleteRows(wbF).length+' filas). Deduplicado por N° remito.</div>'+
-      tablaMes(mensIF,'Margen IF','#135845');
+    var h='';
+    // Cards resumen
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
+    h+='<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#7f1d1d">📦 Flete fábrica</div><div style="font-family:DM Mono,monospace;font-size:15pt;color:#dc2626">'+catIF.fab.length+'</div><div style="font-size:7.5pt;color:#dc2626">Costo: '+fmtPesos(totFabCosto)+'</div></div>';
+    h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#78350f">📉 Venta a pérdida</div><div style="font-family:DM Mono,monospace;font-size:15pt;color:#d97706">'+catIF.ventaPer.length+'</div><div style="font-size:7.5pt;color:#d97706">'+fmtPesos(totVPer)+'</div></div>';
+    h+='<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#065f46">📈 Venta con ganancia</div><div style="font-family:DM Mono,monospace;font-size:15pt;color:#059669">'+catIF.ventaGan.length+'</div><div style="font-size:7.5pt;color:#059669">'+fmtPesos(totVGan)+'</div></div>';
+    h+='<div style="background:'+(netoVenta>=0?'#ecfdf5':'#fef2f2')+';border:1px solid '+(netoVenta>=0?'#6ee7b7':'#fca5a5')+';border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:'+(netoVenta>=0?'#065f46':'#7f1d1d')+'">💰 Neto fletes venta</div><div style="font-family:DM Mono,monospace;font-size:15pt;color:'+(netoVenta>=0?'#059669':'#dc2626')+'">'+fmtPesos(netoVenta)+'</div><div style="font-size:7.5pt;color:#6b7280">(sin costo fábrica)</div></div>';
+    h+='</div>';
+
+    // Flete fábrica
+    h+='<details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700;color:#dc2626;padding:6px 0">📦 Flete Fábrica/Depósito — '+catIF.fab.length+' remitos (costo '+fmtPesos(totFabCosto)+')</summary>';
+    h+='<div class="nota red" style="margin:6px 0">Estos fletes se pagaron al transportista pero no se cobraron al cliente. Son movimientos a fábrica o depósito propio.</div>';
+    h+=tabMes(byMes(catIF.fab,'costo'),'Costo','#dc2626');
+    h+=tabDetalle(catIF.fab,'#dc2626');
+    h+='</details>';
+
+    // Venta a pérdida
+    if(catIF.ventaPer.length){
+      h+='<details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700;color:#d97706;padding:6px 0">📉 Venta a Pérdida — '+catIF.ventaPer.length+' remitos ('+fmtPesos(totVPer)+')</summary>';
+      h+='<div class="nota" style="margin:6px 0">Cobramos al cliente menos de lo que pagamos al transportista.</div>';
+      h+=tabMes(byMes(catIF.ventaPer,'margen'),'Pérdida','#d97706');
+      h+=tabDetalle(catIF.ventaPer,'#d97706');
+      h+='</details>';
+    }
+
+    // Venta con ganancia
+    h+='<details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700;color:#059669;padding:6px 0">📈 Venta con Ganancia — '+catIF.ventaGan.length+' remitos ('+fmtPesos(totVGan)+')</summary>';
+    h+=tabMes(byMes(catIF.ventaGan,'margen'),'Ganancia','#059669');
+    h+=tabDetalle(catIF.ventaGan,'#059669');
+    h+='</details>';
+
+    // Resumen mensual fletes venta
+    h+='<div class="det-t">Resumen mensual — Fletes de Venta (ganancia + pérdida)</div>';
+    var ventaAll=catIF.ventaGan.concat(catIF.ventaPer);
+    h+=tabMes(byMes(ventaAll,'margen'),'Neto','#135845');
+
+    bodyIF.innerHTML=h;
     bodyIF.classList.add('open');
   }
-
   var bdgIF=document.getElementById('bdg-flt-if');
-  if(bdgIF&&mensIF.length){
-    var totIF=mensIF.reduce(function(s,r){return s+r.margen;},0);
-    bdgIF.textContent=fmtPesos(totIF);
-    bdgIF.className='bdg '+(totIF>=0?'ok':'red');
+  if(bdgIF){
+    bdgIF.textContent='Venta: '+fmtPesos(netoVenta)+' | Fábrica: '+fmtPesos(-totFabCosto);
+    bdgIF.className='bdg '+(netoVenta>=0?'ok':'red');
   }
 
+  // ── PROCESAR RAMÓN ──────────────────────────────────────────────────────────
+  var rowsRA=wbR?dedup(getRows(wbR).map(parseRow)):[];
+  var catRA=categorize(rowsRA);
+
+  var totRAGan=catRA.ventaGan.reduce(function(s,r){return s+r.margen;},0);
+  var totRAPer=catRA.ventaPer.reduce(function(s,r){return s+r.margen;},0);
+  var netoRA=(totRAGan+totRAPer)*0.20;
+
+  var bodyRA=document.getElementById('s-flt-ra-body');
   if(bodyRA&&rowsRA.length){
-    // Calcular también margen bruto de Ramón
-    var mensBruto=byMes(rowsRA,1);
-    bodyRA.innerHTML='<div class="nota blu">'+rowsRA.length+' remitos únicos Ramón. IF cobra 20% del margen bruto.</div>'+
-      tablaMes(mensRA,'IF 20%','#7c3aed')+
-      '<div class="det-t" style="margin-top:12px">Margen bruto Ramón (referencia)</div>'+
-      tablaMes(mensBruto,'Margen Bruto','#6b7280');
+    var h2='';
+    var mensRA=byMes(catRA.ventaGan.concat(catRA.ventaPer),'margen');
+    h2+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+    h2+='<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#4c1d95">Margen bruto Ramón</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:#7c3aed">'+fmtPesos(totRAGan+totRAPer)+'</div></div>';
+    h2+='<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#065f46">IF cobra 20%</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:'+(netoRA>=0?'#059669':'#dc2626')+'">'+fmtPesos(netoRA)+'</div></div>';
+    h2+='<div style="background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#374151">Remitos únicos</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:#374151">'+rowsRA.length+'</div></div>';
+    h2+='</div>';
+    h2+='<div class="det-t">Por mes — Margen bruto Ramón y participación IF (20%)</div>';
+    var mensBruto=byMes(catRA.ventaGan.concat(catRA.ventaPer),'margen');
+    var mensRows=mensBruto.map(function(r){
+      var if20=r.val*0.20;
+      var clrB=r.val>=0?'#059669':'#dc2626';
+      var clrIF=if20>=0?'#7c3aed':'#dc2626';
+      return [r.mes,r.n,fN(r.tn,1),'<span style="color:'+clrB+'">'+fmtPesos(r.val)+'</span>','<span style="color:'+clrIF+'">'+fmtPesos(if20)+'</span>'];
+    });
+    h2+=tH(['Mes','Remitos','TN','Margen Bruto','IF 20%'],mensRows,'#7c3aed',40);
+    bodyRA.innerHTML=h2;
     bodyRA.classList.add('open');
   }
-
   var bdgRA=document.getElementById('bdg-flt-ra');
-  if(bdgRA&&mensRA.length){
-    var totRA=mensRA.reduce(function(s,r){return s+r.margen;},0);
-    bdgRA.textContent='IF: '+fmtPesos(totRA);
-    bdgRA.className='bdg '+(totRA>=0?'ok':'red');
-  }
+  if(bdgRA){bdgRA.textContent='IF: '+fmtPesos(netoRA);bdgRA.className='bdg '+(netoRA>=0?'ok':'red');}
 
-  // Resumen comparativo
+  // ── RESUMEN COMPARATIVO ──────────────────────────────────────────────────────
+  var bodyRes=document.getElementById('s-flt-res-body');
   if(bodyRes){
-    var allMeses={};
-    mensIF.forEach(function(r){if(!allMeses[r.mes])allMeses[r.mes]={mes:r.mes,if:0,ramon:0};allMeses[r.mes].if=r.margen;});
-    mensRA.forEach(function(r){if(!allMeses[r.mes])allMeses[r.mes]={mes:r.mes,if:0,ramon:0};allMeses[r.mes].ramon=r.margen;});
-    var combined=Object.values(allMeses).sort(function(a,b){return a.mes>b.mes?1:-1;});
-    var resRows=combined.map(function(r){
-      var tot=r.if+r.ramon;
-      var clrIF=r.if>=0?'#059669':'#dc2626';
-      var clrRA=r.ramon>=0?'#059669':'#dc2626';
-      var clrTot=tot>=0?'#059669':'#dc2626';
-      return [r.mes.split('-').reverse().join('/'),
-        '<span style="color:'+clrIF+'">'+fmtPesos(r.if)+'</span>',
-        '<span style="color:'+clrRA+'">'+fmtPesos(r.ramon)+'</span>',
-        '<span style="color:'+clrTot+';font-weight:700">'+fmtPesos(tot)+'</span>'];
+    var mesIF={},mesRA={};
+    (catIF.ventaGan.concat(catIF.ventaPer)).forEach(function(r){if(!mesIF[r.mes])mesIF[r.mes]={if_v:0,if_f:0};mesIF[r.mes].if_v+=r.margen;});
+    catIF.fab.forEach(function(r){if(!mesIF[r.mes])mesIF[r.mes]={if_v:0,if_f:0};mesIF[r.mes].if_f-=r.costo;});
+    (catRA.ventaGan.concat(catRA.ventaPer)).forEach(function(r){if(!mesRA[r.mes])mesRA[r.mes]={ra:0};mesRA[r.mes].ra+=r.margen*0.20;});
+
+    var allMeses=new Set([].concat(Object.keys(mesIF),Object.keys(mesRA)));
+    var resRows=Array.from(allMeses).sort().map(function(m){
+      var iv=(mesIF[m]||{}).if_v||0;
+      var iFab=(mesIF[m]||{}).if_f||0;
+      var ra=(mesRA[m]||{}).ra||0;
+      var tot=iv+iFab+ra;
+      function cs(v){return '<span style="color:'+(v>=0?'#059669':'#dc2626')+';font-weight:'+(v===0?'400':'700')+'">'+fmtPesos(v)+'</span>';}
+      return [m,cs(iv),cs(iFab),cs(ra),cs(tot)];
     });
-    bodyRes.innerHTML=tH(['Mes','Fletes IF','Ramón (20%)','Total IF'],resRows,'#135845');
-    bodyRes.classList.add('open');
-    var totComb=combined.reduce(function(s,r){return s+r.if+r.ramon;},0);
+    var totIV=Object.values(mesIF).reduce(function(s,r){return s+r.if_v;},0);
+    var totIF2=Object.values(mesIF).reduce(function(s,r){return s+r.if_f;},0);
+    var totRA2=Object.values(mesRA).reduce(function(s,r){return s+r.ra;},0);
+    var totFinal=totIV+totIF2+totRA2;
+
+    var h3=tH(['Mes','IF Venta','IF Fábrica','Ramón 20%','Total'],resRows,'#135845',20);
+    h3+='<div class="nota '+(totFinal>=0?'ok':'red')+'" style="margin-top:6px">'
+      +'<strong>TOTAL: '+fmtPesos(totFinal)+'</strong>'
+      +' | IF Venta: '+fmtPesos(totIV)
+      +' | Fábrica: '+fmtPesos(totIF2)
+      +' | Ramón: '+fmtPesos(totRA2)+'</div>';
+    bodyRes.innerHTML=h3;bodyRes.classList.add('open');
     var bdgRes=document.getElementById('bdg-flt-res');
-    if(bdgRes){bdgRes.textContent='Total: '+fmtPesos(totComb);bdgRes.className='bdg '+(totComb>=0?'ok':'red');}
+    if(bdgRes){bdgRes.textContent='Total: '+fmtPesos(totFinal);bdgRes.className='bdg '+(totFinal>=0?'ok':'red');}
   }
 }
 
@@ -1222,7 +1325,8 @@ function calcular(){
     var MPED=["Error carga circuito/puerto","Error carga destino","Error carga artículo","Error carga comisión","Cambio modalidad Normal a CyO","Ampliación comercial","Reducción menor 2tn","Error comercial","Modificar presentación","Otro"],MREM=["Error TN remitidas","Faltó transporte","Error numerador","Error depósito salida","Remito duplicado","Otro"];
 
     rAudPed.forEach(function(r){
-      var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim(),nro=String(r[3]||'').trim(),fe=r[1];
+      // PEDIDOS: r[3]=Sucursal, r[4]=Numero, r[8]=Motivo
+      var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim(),nro=String(r[4]||'').trim(),fe=r[1];
       var fes=fe?new Date(fe).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
       if(!pedUsrMap[usr])pedUsrMap[usr]={alt:0,mod:0,baj:0};
       if(ac==='Alta'){prodStats.pedAlt++;pedUsrMap[usr].alt++;}
@@ -1239,9 +1343,11 @@ function calcular(){
     });
 
     rAudRem.forEach(function(r){
-      var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim(),nro=String(r[3]||'').trim(),fe=r[1];
+      var ac=String(r[2]||'').trim(),usr=String(r[0]||'').trim();
+      // REMITOS: col3=Número, col6=Motivo
+      var nro=String(r[3]||'').trim(),fe=r[1];
       var fes=fe?new Date(fe).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-      var motArch=String(r[4]||'').trim();
+      var motArch=String(r[6]||'').trim();
       if(!remUsrMap[usr])remUsrMap[usr]={alt:0,mod:0,baj:0};
       if(ac==='Alta'){prodStats.remAlt++;remUsrMap[usr].alt++;}
       else if(ac==='Modifica'){
@@ -1260,7 +1366,7 @@ function calcular(){
     });
 
     rAudFac.forEach(function(r){
-      var ac=String(r[2]||'').trim(),nro=String(r[3]||'').trim();
+      var ac=String(r[2]||'').trim(),nro=String(r[3]||'').trim(); // FACTURAS: col3=Número
       if(ac!=='Alta')return;
       var pref=(nro.match(/^(\d{4})-/)||[])[1]||'';
       if(pref==='0001'||pref==='0005')prodStats.facVC++;
