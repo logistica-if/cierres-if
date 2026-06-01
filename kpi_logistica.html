@@ -1333,7 +1333,7 @@ function calcular(){
       else if(ac==='Modifica'){
         prodStats.pedMod++;pedUsrMap[usr].mod++;
         // Usar motivo del archivo si existe (col 4), sino manual
-        var motArch=String(r[4]||'').trim();
+        var motArch=String(r[8]||'').trim();
         var key=nro+'|ped|'+usr;
         if(!modMap[key])modMap[key]={usr:usr,nro:nro,fes:fes,tipo:'ped',cnt:0,motivo:motArch};
         modMap[key].cnt++;
@@ -1489,7 +1489,10 @@ function calcular(){
         // Contar por motivo
         var motivoCount={};
         modRows.concat(bajRows).forEach(function(r){
-          var m=r.motivo||'Sin especificar';
+          // Solo mostrar si tiene motivo real, no números de pedido/remito
+          // Solo mostrar filas con motivo cargado (Modifica/Baja sin motivo = aún sin completar)
+          var m=r.motivo&&r.motivo.trim()&&!/^[0-9]{5,}/.test(r.motivo.trim())?r.motivo.trim():null;
+          if(!m)return; // omitir del gráfico si no tiene motivo
           motivoCount[m]=(motivoCount[m]||0)+r.cnt;
         });
         var entries=Object.entries(motivoCount).sort(function(a,b){return b[1]-a[1];});
