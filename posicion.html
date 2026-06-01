@@ -1247,7 +1247,18 @@ function parseReporteDesdeWB(wb){
     }
     return s.substring(0,10);
   }
-  function getCol(r,names){for(var i=0;i<names.length;i++){if(r[names[i]]!==undefined&&r[names[i]]!=='')return cl(r[names[i]])}return ''}
+  function getCol(r,names){
+    // Buscar por nombre exacto primero
+    for(var i=0;i<names.length;i++){if(r[names[i]]!==undefined&&r[names[i]]!=='')return cl(r[names[i]]);}
+    // Fallback: buscar normalizando (sin tildes, lowercase)
+    function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');}
+    var rkeys=Object.keys(r);
+    for(var i=0;i<names.length;i++){
+      var nm=norm(names[i]);
+      for(var j=0;j<rkeys.length;j++){if(norm(rkeys[j])===nm&&r[rkeys[j]]!==undefined&&r[rkeys[j]]!=='')return cl(r[rkeys[j]]);}
+    }
+    return '';
+  }
   var EXK=['SILO BOLSA','BIG BAG LINER','BIDON','FLETE','INTERES','COADYUV'];
   function excl(art){var u=(art||'').toUpperCase();return EXK.some(function(k){return u.includes(k)})}
   function toTn(cant,art){var c=nv(cant);return((art||'').toLowerCase().includes('litro')||(art||'').toLowerCase().includes('(lts)'))?c/1000:c}
