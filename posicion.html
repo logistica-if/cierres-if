@@ -1079,6 +1079,25 @@ function recalcular() {
       // Actualizar POSICION_INICIAL
       POSICION_INICIAL.splice(0);
       nuevo.forEach(function(p){ POSICION_INICIAL.push(p) });
+      // Actualizar NRO_INDEX desde los pedidos del nuevo archivo
+      var rv2 = calcDesdeWB._lastRV || [];
+      if(wb_loaded){
+        var sh2=wb_loaded.Sheets[Object.keys(wb_loaded.Sheets).find(function(k){return k.toLowerCase().includes('venta')})||''];
+        if(sh2){
+          var rv2=XLSX.utils.sheet_to_json(sh2,{defval:''});
+          var colN2=Object.keys(rv2[0]||{}).find(function(c){return c.toLowerCase().includes('mer')&&!c.toLowerCase().includes('cia')})||'Número';
+          var colA2=Object.keys(rv2[0]||{}).find(function(c){return c.toLowerCase().includes('art')})||'Artículos';
+          var colC2=Object.keys(rv2[0]||{}).find(function(c){return c.toLowerCase().includes('rem')&&c.toLowerCase().includes('ped')})||'P.Rem/Ped';
+          var colCli2=Object.keys(rv2[0]||{}).find(function(c){return c.toLowerCase().includes('cuenta')||c.toLowerCase().includes('corriente')})||'Cuentas Corrientes';
+          rv2.forEach(function(r){
+            var nro=String(r[colN2]||'').trim();
+            var art=String(r[colA2]||'').trim().toUpperCase().replace(/\s+/g,' ');
+            var cant=parseFloat(String(r[colC2]||'0').replace(',','.'))||0;
+            var cli=String(r[colCli2]||'').trim();
+            if(nro&&art&&cant>0) NRO_INDEX[nro]={art:art,cant:cant,cliente:cli};
+          });
+        }
+      }
       aplicarFijarSilencioso();
       initSidebar(); renderAll();
       document.getElementById('hdr-date').textContent = 'Actualizado: ' + new Date().toLocaleDateString('es-AR');
