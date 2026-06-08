@@ -903,44 +903,113 @@ function calcFletes(){
   }
 
   // ── PROCESAR RAMÓN ──────────────────────────────────────────────────────────
-  var rowsRA=wbR?dedup(getRows(wbR).map(parseRow)):[];
-  var catRA=categorize(rowsRA);
-
-  var totRAGan=catRA.ventaGan.reduce(function(s,r){return s+r.margen;},0);
-  var totRAPer=catRA.ventaPer.reduce(function(s,r){return s+r.margen;},0);
-  var netoRA=(totRAGan+totRAPer)*0.20;
-
-  var bodyRA=document.getElementById('s-flt-ra-body');
-  if(bodyRA&&rowsRA.length){
-    var h2='';
-    var mensRA=byMes(catRA.ventaGan.concat(catRA.ventaPer),'margen');
-    h2+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
-    h2+='<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#4c1d95">Margen bruto Ramón</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:#7c3aed">'+fmtPesos(totRAGan+totRAPer)+'</div></div>';
-    h2+='<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#065f46">IF cobra 20%</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:'+(netoRA>=0?'#059669':'#dc2626')+'">'+fmtPesos(netoRA)+'</div></div>';
-    h2+='<div style="background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;padding:10px;text-align:center"><div style="font-size:7.5pt;font-weight:700;color:#374151">Remitos únicos</div><div style="font-family:DM Mono,monospace;font-size:14pt;color:#374151">'+rowsRA.length+'</div></div>';
-    h2+='</div>';
-    h2+='<div class="det-t">Por mes — Margen bruto Ramón y participación IF (20%)</div>';
-    var mensBruto=byMes(catRA.ventaGan.concat(catRA.ventaPer),'margen');
-    var mensRows=mensBruto.map(function(r){
-      var if20=r.val*0.20;
-      var clrB=r.val>=0?'#059669':'#dc2626';
-      var clrIF=if20>=0?'#7c3aed':'#dc2626';
-      return [r.mes,r.n,fN(r.tn,1),'<span style="color:'+clrB+'">'+fmtPesos(r.val)+'</span>','<span style="color:'+clrIF+'">'+fmtPesos(if20)+'</span>'];
+  // ── PROCESAR RAMÓN ──────────────────────────────────────────────────────────
+var rowsRA_raw = [];
+if (wbR && !wbR._su) {
+  // Hoja1: col0=CLIENTE, col1=TTE, col2=REMITO, col3=fecha, col4=TN, 
+  //        col5=$ TTE, col6=$ IFSA, col7=DIFERENCIA, col8=saldo a favor
+  var sheetKey = Object.keys(wbR.Sheets)[0]; // Hoja1
+  var raw = XLSX.utils.sheet_to_json(wbR.Sheets[sheetKey], {header:1, defval:''});
+  // Saltear header (fila 0) y filas de resumen (col0 vacío o fila sin REMITO)
+  raw.slice(1).forEach(function(r) {
+    var cliente = String(r[0]||'').trim();
+    var remito  = String(r[2]||'').trim();
+    var fecha   = r[3];
+    var saldo   = parseFloat(String(r[8]||'').replace(',','.'));
+    if (!cliente || !remito || isNaN(saldo)) return; // filas de resumen/vacías
+    var fechaDt = fecha instanceof Date ? fecha : (fecha ? new Date(fecha) : null);
+    var mes = (fechaDt && !isNaN(fechaDt))
+      ? (fechaDt.getFullYear()+'-'+String(fechaDt.getMonth()+1).padStart(2,'0'))
+      : '';
+    var tn = r[4];
+    var tnNum = (typeof tn === 'number') ? tn : parseFloat(String(tn||'').replace(',','.'));
+    rowsRA_raw.push({
+      remito: remito,
+      cliente: cliente,
+      tte: String(r[1]||'').trim(),
+      fecha: fechaDt ? fechaDt.toLocaleDateString('es-AR') : '',
+      mes: mes,
+      tn: isNaN(tnNum) ? null : tnNum,   // null = "por viaje"
+      tnLabel: isNaN(tnNum) ? 'por viaje' : fN(tnNum,2),
+      tariC: parseFloat(String(r[6]||'').replace(',','.'))||0,
+      tariT: parseFloat(String(r[5]||'').replace(',','.'))||0,
+      saldo: saldo   // ya es el margen bruto (DIFERENCIA × TN o fijo)
     });
-    h2+=tH(['Mes','Remitos','TN','Margen Bruto','IF 20%'],mensRows,'#7c3aed',40);
-    bodyRA.innerHTML=h2;
-    bodyRA.classList.add('open');
-  }
-  var bdgRA=document.getElementById('bdg-flt-ra');
-  if(bdgRA){bdgRA.textContent='IF: '+fmtPesos(netoRA);bdgRA.className='bdg '+(netoRA>=0?'ok':'red');}
+  });
+}
+
+// Agrupar por mes
+var mesBrutoRA = {};
+rowsRA_raw.forEach(function(r) {
+  if (!r.mes) return;
+  if (!mesBrutoRA[r.mes]) mesBrutoRA[r.mes] = {mes: r.mes, n: 0, tn: 0, saldo: 0};
+  mesBrutoRA[r.mes].n++;
+  if (r.tn !== null) mesBrutoRA[r.mes].tn += r.tn;
+  mesBrutoRA[r.mes].saldo += r.saldo;
+});
+var mesBrutoArr = Object.values(mesBrutoRA).sort(function(a,b){return a.mes>b.mes?1:-1;});
+
+var totalBrutoRA = rowsRA_raw.reduce(function(s,r){return s+r.saldo;}, 0);
+var netoRA = totalBrutoRA * 0.20;
+
+var bodyRA = document.getElementById('s-flt-ra-body');
+if (bodyRA && rowsRA_raw.length) {
+  var h2 = '';
+  h2 += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  h2 += '<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="font-size:7.5pt;font-weight:700;color:#4c1d95">Margen bruto Ramón</div>'
+      + '<div style="font-family:DM Mono,monospace;font-size:14pt;color:#7c3aed">'+fmtPesos(totalBrutoRA)+'</div></div>';
+  h2 += '<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="font-size:7.5pt;font-weight:700;color:#065f46">IF cobra 20%</div>'
+      + '<div style="font-family:DM Mono,monospace;font-size:14pt;color:'+(netoRA>=0?'#059669':'#dc2626')+'">'+fmtPesos(netoRA)+'</div></div>';
+  h2 += '<div style="background:#f9fafb;border:1px solid #d1d5db;border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="font-size:7.5pt;font-weight:700;color:#374151">Remitos</div>'
+      + '<div style="font-family:DM Mono,monospace;font-size:14pt;color:#374151">'+rowsRA_raw.length+'</div></div>';
+  h2 += '</div>';
+
+  // Tabla por mes
+  h2 += '<div class="det-t">Por mes — Margen bruto Ramón y participación IF (20%)</div>';
+  var mensRows = mesBrutoArr.map(function(r) {
+    var if20 = r.saldo * 0.20;
+    var clrB = r.saldo >= 0 ? '#059669' : '#dc2626';
+    var clrIF = if20 >= 0 ? '#7c3aed' : '#dc2626';
+    return [r.mes, r.n, fN(r.tn,1),
+      '<span style="color:'+clrB+'">'+fmtPesos(r.saldo)+'</span>',
+      '<span style="color:'+clrIF+'">'+fmtPesos(if20)+'</span>'];
+  });
+  h2 += tH(['Mes','Remitos','TN','Margen Bruto','IF 20%'], mensRows, '#7c3aed', 40);
+
+  // Detalle remitos
+  h2 += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:#7c3aed;padding:6px 0">Ver detalle de remitos</summary>';
+  var detRows = rowsRA_raw.map(function(r) {
+    var clr = r.saldo >= 0 ? '#059669' : '#dc2626';
+    return [r.fecha, r.remito, r.cliente.slice(0,22), r.tte.slice(0,16), r.tnLabel,
+      fN(r.tariT,0), fN(r.tariC,0),
+      '<span style="color:'+clr+'">'+fmtPesos(r.saldo)+'</span>',
+      '<span style="color:#7c3aed">'+fmtPesos(r.saldo*0.20)+'</span>'];
+  });
+  h2 += tH(['Fecha','Remito','Cliente','Transportista','TN','$ TTE','$ IF','Saldo','IF 20%'], detRows, '#7c3aed', 60);
+  h2 += '</details>';
+
+  bodyRA.innerHTML = h2;
+  bodyRA.classList.add('open');
+}
+
+var bdgRA = document.getElementById('bdg-flt-ra');
+if (bdgRA) {
+  bdgRA.textContent = 'IF: ' + fmtPesos(netoRA);
+  bdgRA.className = 'bdg ' + (netoRA >= 0 ? 'ok' : 'red');
+}
 
   // ── RESUMEN COMPARATIVO ──────────────────────────────────────────────────────
   var bodyRes=document.getElementById('s-flt-res-body');
   if(bodyRes){
     var mesIF={},mesRA={};
-    (catIF.ventaGan.concat(catIF.ventaPer)).forEach(function(r){if(!mesIF[r.mes])mesIF[r.mes]={if_v:0,if_f:0};mesIF[r.mes].if_v+=r.margen;});
-    catIF.fab.forEach(function(r){if(!mesIF[r.mes])mesIF[r.mes]={if_v:0,if_f:0};mesIF[r.mes].if_f-=r.costo;});
-    (catRA.ventaGan.concat(catRA.ventaPer)).forEach(function(r){if(!mesRA[r.mes])mesRA[r.mes]={ra:0};mesRA[r.mes].ra+=r.margen*0.20;});
+    rowsRA_raw.forEach(function(r) {
+  if (!r.mes) return;
+  if (!mesRA[r.mes]) mesRA[r.mes] = {ra: 0};
+  mesRA[r.mes].ra += r.saldo * 0.20;
+});
 
     var allMeses=new Set([].concat(Object.keys(mesIF),Object.keys(mesRA)));
     var resRows=Array.from(allMeses).sort().map(function(m){
