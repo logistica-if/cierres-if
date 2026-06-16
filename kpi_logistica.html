@@ -427,9 +427,9 @@ body{font-family:'DM Sans',sans-serif;background:#f4f9f6;color:var(--td)}
     </div>
     <div class="sec-body open" id="s-hll-body">
       <div class="nota">
-        <strong>🔴 Crítico</strong> — Días de stock &lt; Punto de pedido o sin stock.<br>
-        <strong>🟡 Atención</strong> — Días de stock entre 1× y 1.5× el punto de pedido.<br>
-        <strong>🟢 OK</strong> — Stock suficiente.
+        <strong>🔴 Crítico</strong> — Stock por debajo del mínimo.<br>
+        <strong>🟡 Atención</strong> — Stock entre mínimo y máximo.<br>
+        <strong>🟢 OK</strong> — Stock por encima del máximo.
       </div>
       <div id="hll-cards" class="hll-grid"></div>
     </div>
@@ -672,12 +672,13 @@ function calcHallpa(){
     if(!dias&&stock>0&&consumo>0)dias=stock/consumo*7;
     var diasStr=dias?fN(dias,1)+' días':'—';
 
-    // Semáforo
+    // Semáforo: rojo < mínimo, amarillo entre mínimo y máximo, verde > máximo
     var estado='ok';
     if(!stock||stock<=0||insumo==='-')estado='sin-dato';
-    else if(!ptoPedido||dias===null)estado='sin-dato';
-    else if(dias<=ptoPedido)estado='critico';
-    else if(dias<=ptoPedido*1.5)estado='atencion';
+    else if(!ptoPedido&&!espMax)estado='sin-dato';
+    else if(ptoPedido>0&&stock<ptoPedido)estado='critico';
+    else if(espMax>0&&stock<=espMax)estado='atencion';
+    else estado='ok';
 
     if(estado==='critico')criticos++;
     else if(estado==='atencion')atencion++;
@@ -1337,6 +1338,19 @@ function calcular(){
     });
 
     // ── Remitido pend facturar ───────────────────────────────────────────────
+    // Índice de fechas de remito por número de pedido IF (desde Cupos)
+    var cupIdx={};
+    rCup.forEach(function(r){
+      var pedIF=String(r['IF VENTA']||'').trim();
+      var remito=String(r['REMITO']||'').trim();
+      var fechaCupo=toD(r['FECHA DE CUPO']);
+      if(!pedIF||!remito||remito==='nan'||remito.length<3||!fechaCupo)return;
+      if(!cupIdx[pedIF]){cupIdx[pedIF]={fechaMin:fechaCupo,fechaMax:fechaCupo,remitos:[]};}
+      if(fechaCupo<cupIdx[pedIF].fechaMin)cupIdx[pedIF].fechaMin=fechaCupo;
+      if(fechaCupo>cupIdx[pedIF].fechaMax)cupIdx[pedIF].fechaMax=fechaCupo;
+      cupIdx[pedIF].remitos.push(remito);
+    });
+
     var facCyo=[],facNrm=[],facTnCyo=0,facTnNrm=0;
     rVta.forEach(function(r){
       var pf=toN(r['Pendiente de facturar (+)']);
@@ -1354,7 +1368,14 @@ function calcular(){
         cliShow='HIRYO→'+(hy.cli||'-')+(hy.consig?' 🔄':'');
       }
       var diasD=fe?Math.round((new Date()-fe)/864e5):null;
-      var row=[fmtD(fe),ped,cliShow,mod.slice(0,15),art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',diasD!==null?diasD+'d':'-'];
+      var cupInfo=cupIdx[ped]||null;
+      var fechaRemMin=cupInfo?cupInfo.fechaMin:null;
+      var fechaRemMax=cupInfo?cupInfo.fechaMax:null;
+      var diasDesdeRem=fechaRemMin?Math.round((new Date()-fechaRemMin)/864e5):null;
+      var diasStr=diasDesdeRem!==null
+        ?('<strong style="color:'+(diasDesdeRem>30?'#dc2626':diasDesdeRem>14?'#d97706':'#059669')+'">'+diasDesdeRem+'d</strong>'+(fechaRemMax&&fmtD(fechaRemMax)!==fmtD(fechaRemMin)?' (últ: '+fmtD(fechaRemMax)+')':''))
+        :(diasD!==null?diasD+'d ⚠️':'—');
+      var row=[fmtD(fechaRemMin||fe),ped,cliShow,mod.slice(0,15),art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',diasStr];
       if(isLiq||!mod.toUpperCase().includes('CUENTA')){facNrm.push(row);facTnNrm+=isLiq?pend/1000:pend;}
       else{facCyo.push(row);facTnCyo+=pend;}
     });
@@ -1499,8 +1520,14 @@ function calcular(){
       fh+='<div style="flex:1;min-width:130px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:7.5pt;font-weight:700;text-transform:uppercase;color:#92400e">Cuenta y Orden</div><div style="font-family:DM Mono,monospace;font-size:20pt;color:#d97706">'+facCyo.length+'</div><div style="font-size:7.5pt;color:#92400e">'+fN(facTnCyo,2)+' tn</div></div>';
       fh+='<div style="flex:1;min-width:130px;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:7.5pt;font-weight:700;text-transform:uppercase;color:#1e3a8a">Facturación IF</div><div style="font-family:DM Mono,monospace;font-size:20pt;color:#2563eb">'+facNrm.length+'</div><div style="font-size:7.5pt;color:#1e3a8a">'+fN(facTnNrm,2)+' tn</div></div>';
       fh+='</div>';
-      fh+='<div class="nota">HIRYO→[cliente final]. 🔄 = consignación. Días = desde el negocio.</div>';
-      fh+=tH(['Fecha','Nro Ped.','Cliente','Modalidad','Artículo','Pend.','Días'],facCyo.concat(facNrm),'#d97706');
+      fh+='<div class="nota">HIRYO→[cliente final]. 🔄 = consignación.</div>';
+      fh+='<div class="nota" style="margin-bottom:6px;font-size:7.5pt">📅 <strong>Fecha</strong> = primer remito en Cupos IF-HIRYO. <strong>Días</strong> = desde ese remito hasta hoy. <span style="color:#9ca3af">⚠️ sin cupo = días desde negocio.</span> 🟢≤14d 🟡15-30d 🔴>30d</div>';
+      var facAll=facCyo.concat(facNrm).sort(function(a,b){
+        var da=a[0]?a[0].split('/').reverse().join(''):'99999999';
+        var db=b[0]?b[0].split('/').reverse().join(''):'99999999';
+        return da>db?1:da<db?-1:0;
+      });
+      fh+=tH(['Fecha 1°Rem.','Nro Ped.','Cliente','Modalidad','Artículo','Pend.','Días s/facturar'],facAll,'#d97706');
       facBody.innerHTML=fh;facBody.classList.add('open');
     }
     var bdgFac=document.getElementById('bdg-fac');
