@@ -490,6 +490,24 @@ function tH(cols,rows,color,limit){
   return h+'</tbody></table></div>';
 }
 
+// Como tH pero permite HTML en celdas que empiezan con "HTML:"
+function tHraw(cols,rows,color,limit){
+  limit=limit||60;color=color||'#135845';
+  if(!Array.isArray(rows))rows=[];
+  if(!rows.length)return '<p class="empty">Sin registros</p>';
+  var h='<div class="tbl-wrap"><table class="dt" style="--tc:'+color+'"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+  rows.slice(0,limit).forEach(function(r){
+    if(!Array.isArray(r))return;
+    h+='<tr>'+r.map(function(v){
+      var s=String(v==null?'-':v);
+      if(s.startsWith('HTML:'))return '<td>'+s.slice(5)+'</td>';
+      return '<td>'+esc(s.slice(0,50))+'</td>';
+    }).join('')+'</tr>';
+  });
+  if(rows.length>limit)h+='<tr><td colspan="'+cols.length+'" style="text-align:center;color:#9ca3af;font-style:italic">... y '+(rows.length-limit)+' más</td></tr>';
+  return h+'</tbody></table></div>';
+}
+
 // ══ RENDERIZAR KPI ROW ══════════════════════════════════════════════════════
 function renderKrow(id,label,val,antVal,tipo,semTag,detHtml){
   var v=parseFloat(val)||0;
@@ -1373,8 +1391,8 @@ function calcular(){
       var fechaRemMax=cupInfo?cupInfo.fechaMax:null;
       var diasDesdeRem=fechaRemMin?Math.round((new Date()-fechaRemMin)/864e5):null;
       var diasStr=diasDesdeRem!==null
-        ?('<strong style="color:'+(diasDesdeRem>30?'#dc2626':diasDesdeRem>14?'#d97706':'#059669')+'">'+diasDesdeRem+'d</strong>'+(fechaRemMax&&fmtD(fechaRemMax)!==fmtD(fechaRemMin)?' (últ: '+fmtD(fechaRemMax)+')':''))
-        :(diasD!==null?diasD+'d ⚠️':'—');
+        ?('HTML:<strong style="color:'+(diasDesdeRem>30?'#dc2626':diasDesdeRem>14?'#d97706':'#059669')+'">'+diasDesdeRem+'d</strong>'+(fechaRemMax&&fmtD(fechaRemMax)!==fmtD(fechaRemMin)?' <span style="color:#9ca3af;font-size:7pt">(últ: '+fmtD(fechaRemMax)+')</span>':''))
+        :(diasD!==null?'HTML:<span style="color:#9ca3af">'+diasD+'d ⚠️</span>':'—');
       var row=[fmtD(fechaRemMin||fe),ped,cliShow,mod.slice(0,15),art.slice(0,32),isLiq?fN(pend,0)+' lts':fN(pend,2)+' tn',diasStr];
       if(isLiq||!mod.toUpperCase().includes('CUENTA')){facNrm.push(row);facTnNrm+=isLiq?pend/1000:pend;}
       else{facCyo.push(row);facTnCyo+=pend;}
@@ -1527,7 +1545,7 @@ function calcular(){
         var db=b[0]?b[0].split('/').reverse().join(''):'99999999';
         return da>db?1:da<db?-1:0;
       });
-      fh+=tH(['Fecha 1°Rem.','Nro Ped.','Cliente','Modalidad','Artículo','Pend.','Días s/facturar'],facAll,'#d97706');
+      fh+=tHraw(['Fecha 1°Rem.','Nro Ped.','Cliente','Modalidad','Artículo','Pend.','Días s/facturar'],facAll,'#d97706');
       facBody.innerHTML=fh;facBody.classList.add('open');
     }
     var bdgFac=document.getElementById('bdg-fac');
