@@ -851,7 +851,7 @@ function calcFletes(){
       var clr=r.val>=0?'#059669':'#dc2626';
       return [r.mes,r.n,fN(r.tn,1),'<span style="color:'+clr+';font-weight:700">'+fmtPesos(r.val)+'</span>'];
     });
-    return tH(['Mes','Remitos','TN',valLabel],rows,color)
+    return tHraw(['Mes','Remitos','TN',valLabel],rows,color)
       +'<div class="nota '+(total>=0?'ok':'red')+'" style="margin-top:5px">Total: <strong>'+fmtPesos(total)+'</strong> | '+fN(tnTot,1)+' tn</div>';
   }
 
@@ -862,7 +862,7 @@ function calcFletes(){
       return [r.fecha,r.nro.slice(0,18),r.cliente.slice(0,24),fN(r.cant,1),
         fN(r.tariC,2),fN(r.tariT,2),'<span style="color:'+clr+'">'+fmtPesos(r.margen)+'</span>'];
     });
-    return tH(['Fecha','N° Remito','Cliente','TN','T.Cli','T.Trans','Margen'],data,color,40);
+    return tHraw(['Fecha','N° Remito','Cliente','TN','T.Cli','T.Trans','Margen'],data,color,40);
   }
 
   // ── PROCESAR IF ─────────────────────────────────────────────────────────────
@@ -996,7 +996,7 @@ if (bodyRA && rowsRA_raw.length) {
       '<span style="color:'+clrB+'">'+fmtPesos(r.saldo)+'</span>',
       '<span style="color:'+clrIF+'">'+fmtPesos(if20)+'</span>'];
   });
-  h2 += tH(['Mes','Remitos','TN','Margen Bruto','IF 20%'], mensRows, '#7c3aed', 40);
+  h2 += tHraw(['Mes','Remitos','TN','Margen Bruto','IF 20%'], mensRows, '#7c3aed', 40);
 
   // Detalle remitos
   h2 += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:#7c3aed;padding:6px 0">Ver detalle de remitos</summary>';
@@ -1007,7 +1007,7 @@ if (bodyRA && rowsRA_raw.length) {
       '<span style="color:'+clr+'">'+fmtPesos(r.saldo)+'</span>',
       '<span style="color:#7c3aed">'+fmtPesos(r.saldo*0.20)+'</span>'];
   });
-  h2 += tH(['Fecha','Remito','Cliente','Transportista','TN','$ TTE','$ IF','Saldo','IF 20%'], detRows, '#7c3aed', 60);
+  h2 += tHraw(['Fecha','Remito','Cliente','Transportista','TN','$ TTE','$ IF','Saldo','IF 20%'], detRows, '#7c3aed', 60);
   h2 += '</details>';
 
   bodyRA.innerHTML = h2;
@@ -1044,7 +1044,7 @@ if (bdgRA) {
     var totRA2=Object.values(mesRA).reduce(function(s,r){return s+r.ra;},0);
     var totFinal=totIV+totIF2+totRA2;
 
-    var h3=tH(['Mes','IF Venta','IF Fábrica','Ramón 20%','Total'],resRows,'#135845',20);
+    var h3=tHraw(['Mes','IF Venta','IF Fábrica','Ramón 20%','Total'],resRows,'#135845',20);
     h3+='<div class="nota '+(totFinal>=0?'ok':'red')+'" style="margin-top:6px">'
       +'<strong>TOTAL: '+fmtPesos(totFinal)+'</strong>'
       +' | IF Venta: '+fmtPesos(totIV)
@@ -1054,6 +1054,83 @@ if (bdgRA) {
     var bdgRes=document.getElementById('bdg-flt-res');
     if(bdgRes){bdgRes.textContent='Total: '+fmtPesos(totFinal);bdgRes.className='bdg '+(totFinal>=0?'ok':'red');}
   }
+}
+
+
+// ══ MOTIVOS DE REPROCESO CON PERSISTENCIA ════════════════════════════════════
+var MOTIVOS_KEY_PREFIX = 'kpi_motivos_';
+
+function motivosGuardar(semKey, modRows, bajRows) {
+  if(!semKey) return;
+  // Separar pedidos de remitos y contar por motivo
+  var ped = {}, rem = {};
+  modRows.forEach(function(r) {
+    var m = r.motivo && r.motivo.trim() && !/^[0-9]{5,}/.test(r.motivo.trim()) ? r.motivo.trim() : null;
+    if(!m) return;
+    ped[m] = (ped[m]||0) + (r.cnt||1);
+  });
+  bajRows.forEach(function(r) {
+    var m = r.motivo && r.motivo.trim() && !/^[0-9]{5,}/.test(r.motivo.trim()) ? r.motivo.trim() : null;
+    if(!m) return;
+    rem[m] = (rem[m]||0) + (r.cnt||1);
+  });
+  // Solo guardar si hay motivos registrados
+  var totalPed = Object.values(ped).reduce(function(s,v){return s+v;},0);
+  var totalRem = Object.values(rem).reduce(function(s,v){return s+v;},0);
+  if(!totalPed && !totalRem) return;
+  try {
+    localStorage.setItem(MOTIVOS_KEY_PREFIX + semKey, JSON.stringify({
+      key: semKey, fecha: new Date().toISOString(), ped: ped, rem: rem
+    }));
+  } catch(e) { console.warn('Error guardando motivos:', e); }
+}
+
+function motivosHistAcumulado() {
+  var acumPed = {}, acumRem = {};
+  var semanas = [];
+  for(var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if(!k || !k.startsWith(MOTIVOS_KEY_PREFIX)) continue;
+    try {
+      var d = JSON.parse(localStorage.getItem(k));
+      semanas.push(d.key);
+      Object.keys(d.ped||{}).forEach(function(m){ acumPed[m] = (acumPed[m]||0) + d.ped[m]; });
+      Object.keys(d.rem||{}).forEach(function(m){ acumRem[m] = (acumRem[m]||0) + d.rem[m]; });
+    } catch(e) {}
+  }
+  return { ped: acumPed, rem: acumRem, semanas: semanas.sort() };
+}
+
+function motivosRenderHistorial() {
+  var ac = motivosHistAcumulado();
+  var html = '';
+  if(!ac.semanas.length) {
+    return '<div class="nota" style="margin-top:6px">Sin historial acumulado. Se guardará automáticamente al calcular cuando haya motivos cargados en el archivo de auditoría.</div>';
+  }
+  html += '<div class="nota ok" style="margin-top:6px;font-size:7.5pt">Acumulado de <strong>' + ac.semanas.length + '</strong> semana(s): ' + ac.semanas[0] + ' → ' + ac.semanas[ac.semanas.length-1] + '</div>';
+
+  function barras(data, color) {
+    var entries = Object.entries(data).sort(function(a,b){return b[1]-a[1];});
+    if(!entries.length) return '<p class="empty">Sin motivos registrados</p>';
+    var mx = entries[0][1];
+    var h = '<div style="background:#f8fdf9;border:1px solid var(--bdr);border-radius:8px;padding:10px 14px">';
+    entries.forEach(function(e) {
+      var pct = e[1]/mx*100;
+      h += '<div style="margin-bottom:6px">'
+        + '<div style="display:flex;justify-content:space-between;font-size:8pt;margin-bottom:2px">'
+        + '<span>' + esc(e[0]) + '</span>'
+        + '<span style="font-weight:700;color:' + color + '">' + e[1] + '</span></div>'
+        + '<div style="height:8px;background:#e5e7eb;border-radius:4px">'
+        + '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:4px"></div></div></div>';
+    });
+    return h + '</div>';
+  }
+
+  html += '<div class="det2" style="margin-top:8px">';
+  html += '<div><div class="det-t" style="color:#2563eb">📋 Motivos Pedidos (acumulado)</div>' + barras(ac.ped, '#2563eb') + '</div>';
+  html += '<div><div class="det-t" style="color:#dc2626">🚛 Motivos Remitos (acumulado)</div>' + barras(ac.rem, '#dc2626') + '</div>';
+  html += '</div>';
+  return html;
 }
 
 // ══ CONCILIACIONES CON PERSISTENCIA ══════════════════════════════════════════
@@ -1618,6 +1695,9 @@ function calcular(){
           ph2+='<div style="height:8px;background:#e5e7eb;border-radius:4px"><div style="width:'+pct+'%;height:100%;background:#135845;border-radius:4px"></div></div></div>';
         });
         ph2+='</div>';
+        // Historial acumulado debajo del gráfico semanal
+        ph2+='<div class="det-t" style="margin-top:14px;color:#6b7280">📊 Acumulado histórico de motivos</div>';
+        ph2+=motivosRenderHistorial();
       } else {
         ph2+='<div class="nota">Si el archivo de auditoría incluye una columna de motivos (col. E), se grafican automáticamente. Si no, usá el formulario de abajo para registrarlos.</div>';
         ph2+='<div id="chart-wrap" style="margin:8px 0"></div>';
@@ -1636,6 +1716,11 @@ function calcular(){
         }
       }
       prodBody.innerHTML=ph2;prodBody.classList.add('open');
+      // Guardar motivos automáticamente si hay datos del archivo
+      if(tieneMotArchivo) {
+        var _sk=getSemKey();
+        if(_sk) motivosGuardar(_sk, modRows, bajRows);
+      }
     }
     var bdgProd=document.getElementById('bdg-prod');
     if(bdgProd){bdgProd.textContent='P: '+prodStats.pedAlt+' | R: '+prodStats.remAlt+' | F: '+(prodStats.facVC+prodStats.facLiq+prodStats.facNC);bdgProd.className='bdg blu';}
