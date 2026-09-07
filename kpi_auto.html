@@ -422,9 +422,20 @@ function renderResumen(frm,cup,kpi){
   var oe=kpi.cupEstados.ordenEnv.length;
   h+=card('Pendientes de pedir',pe,null,pe>0?'rojo':'verde','cupos abiertos');
   h+=card('Sin respuesta',sr,null,sr>0?'amarillo':'verde','esperando confirmación');
-  h+=card('Orden enviada',oe,null,oe>0?'azul':'verde','pendiente de remito');
+  h+=card('Orden enviada — sin remito',oe,null,oe>0?'rojo':'verde','pendiente de cargar');
   h+=card('Remitidos (4 semanas)',kpi.nRem4sem,null,'verde',fN(kpi.tnRem4sem,1)+' tn · '+fN(kpi.ltsRem4sem/1000,0)+'k lts');
   h+='</div>';
+
+  // Alerta si hay órdenes enviadas sin remito
+  if(oe>0){
+    var cup=window._cup||[];
+    var sinRemito=cup.filter(function(r){return r.estado.includes('ORDEN ENVIADA')&&!r.remito;});
+    var conRemito=cup.filter(function(r){return r.estado.includes('ORDEN ENVIADA')&&r.remito;});
+    h+='<div class="nota red" style="margin-bottom:14px">⚠️ <strong>'+oe+' cupo(s) con Orden Enviada pendientes de remito</strong>';
+    if(sinRemito.length) h+=' — <strong>'+sinRemito.length+' sin N° remito</strong>';
+    if(conRemito.length) h+=' — <strong>'+conRemito.length+' con remito pero sin cargar en sistema</strong>';
+    h+=' → Ver pestaña 📦 Cupos</div>';
+  }
 
   // Mini sparkline cierres últimas 8 semanas
   var sems8=kpi.semanas.slice(-8);
@@ -522,7 +533,16 @@ function renderCupos(frm,cup,kpi){
 
   h+=secCupos('s-pedir','Pendientes de pedir cupo','🔴',estados.pedir,colsCup,'#dc2626','red');
   h+=secCupos('s-sinresp','Sin respuesta del proveedor','🟡',estados.sinResp,colsCup,'#d97706','amb');
-  h+=secCupos('s-orden','Orden enviada — pendiente de remito','📋',estados.ordenEnv,colsCup,'#2563eb','blu');
+  // Separar orden enviada: sin remito vs con remito (número cargado pero sin subir al sistema)
+  var ordenSinRem = estados.ordenEnv.filter(function(r){return !r.remito;});
+  var ordenConRem = estados.ordenEnv.filter(function(r){return !!r.remito;});
+  var colsConRem = function(r){return [r.fechaStr,r.cliente.slice(0,28),r.fertil.slice(0,26),fN(r.cant,1)+' tn',r.remito,r.deposito];};
+  if(ordenSinRem.length)
+    h+=secCupos('s-orden-sin','Sin número de remito aún','🔴',ordenSinRem,colsCup,'#dc2626','red');
+  if(ordenConRem.length)
+    h+=secCupos('s-orden-con','Con remito — pendiente de cargar en sistema','🟡',ordenConRem,colsConRem,'#d97706','amb');
+  if(!estados.ordenEnv.length)
+    h+='<div class="sec"><div class="sec-hdr"><span class="si">✅</span><span class="st">Sin órdenes pendientes</span><span class="bdg ok">0</span></div></div>';
 
   // Remitidos recientes (últimas 4 semanas)
   var hoy=kpi.hoy;
