@@ -682,7 +682,7 @@ function cargarDatos(){
   step.textContent='Leyendo respuestas del formulario...';
 
   var URL_FORM  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTAjTHHbqpVVqHG690e65TXYu0AxUiCvRJfg_yeMwnBZN5-91qTPGfJvm1maqRIpFoZY479qFsC1vND/pub?output=csv';
-  var URL_CUPOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSqRv9_h_VyFSOMit0tacKGMTJx2XAUHnprwM5zVNPhGcKczbZlrBNXIixTgQVeVip-gS116q7dw7xK/pub?output=csv';
+  var URL_CUPOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSqRv9_h_VyFSOMit0tacKGMTJx2XAUHnprwM5zVNPhGcKczbZlrBNXIixTgQVeVip-gS116q7dw7xK/pub?gid=1317122675&single=true&output=csv';
   Promise.all([
     fetchSheet(URL_FORM).catch(function(e){console.warn('Form:',e);return[];}),
     fetchSheet(URL_CUPOS).catch(function(e){console.warn('Cupos:',e);return[];})
