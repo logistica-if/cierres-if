@@ -239,13 +239,7 @@ function miniSpark(vals, color){
 }
 
 // ══ FETCH CSV DESDE GOOGLE SHEETS ════════════════════════════════════════════
-function fetchSheet(fileId, sheetName, gid){
-  var url;
-  if(gid){
-    url='https://docs.google.com/spreadsheets/d/'+fileId+'/export?format=csv&gid='+gid;
-  } else {
-    url='https://docs.google.com/spreadsheets/d/'+fileId+'/export?format=csv'+(sheetName?'&sheet='+encodeURIComponent(sheetName):'');
-  }
+function fetchSheet(url){
   return fetch(url).then(function(r){
     if(!r.ok)throw new Error('Error '+r.status+' al leer '+fileId);
     return r.text();
@@ -687,9 +681,11 @@ function cargarDatos(){
   var step=document.getElementById('load-step');
   step.textContent='Leyendo respuestas del formulario...';
 
+  var URL_FORM  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTAjTHHbqpVVqHG690e65TXYu0AxUiCvRJfg_yeMwnBZN5-91qTPGfJvm1maqRIpFoZY479qFsC1vND/pub?output=csv';
+  var URL_CUPOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSqRv9_h_VyFSOMit0tacKGMTJx2XAUHnprwM5zVNPhGcKczbZlrBNXIixTgQVeVip-gS116q7dw7xK/pub?output=csv';
   Promise.all([
-    fetchSheet(FORM_ID,'').catch(function(e){console.warn('Form:',e);return[];}),
-    fetchSheet(CUPOS_ID,'',1317122675).catch(function(e){console.warn('Cupos:',e);return[];})
+    fetchSheet(URL_FORM).catch(function(e){console.warn('Form:',e);return[];}),
+    fetchSheet(URL_CUPOS).catch(function(e){console.warn('Cupos:',e);return[];})
   ]).then(function(results){
     step.textContent='Procesando datos...';
     var rowsFrm=results[0], rowsCup=results[1];
