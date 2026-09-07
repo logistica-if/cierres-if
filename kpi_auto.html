@@ -361,10 +361,14 @@ function calcKPIs(frm, cup){
 
   // Cupos por estado
   var cupEstados={pedir:[],sinResp:[],ordenEnv:[],remitidos:[]};
+  var hoyStr=hoy.toDateString();
   cup.forEach(function(r){
     if(r.estado.includes('PEDIR CUPO'))cupEstados.pedir.push(r);
     else if(r.estado.includes('SIN RESPUESTA')||r.estado.includes('PENDIENTE DE RESPUESTA'))cupEstados.sinResp.push(r);
-    else if(r.estado.includes('ORDEN ENVIADA'))cupEstados.ordenEnv.push(r);
+    else if(r.estado.includes('ORDEN ENVIADA')){
+      // Excluir los de hoy — están en proceso de carga
+      if(!r.fecha||r.fecha.toDateString()!==hoyStr)cupEstados.ordenEnv.push(r);
+    }
     else if(r.estado.includes('REMITIDO'))cupEstados.remitidos.push(r);
   });
 
@@ -416,7 +420,7 @@ function renderResumen(frm,cup,kpi){
   var oe=kpi.cupEstados.ordenEnv.length;
   h+=card('Pendientes de pedir',pe,null,pe>0?'rojo':'verde','cupos abiertos');
   h+=card('Sin respuesta',sr,null,sr>0?'amarillo':'verde','esperando confirmación');
-  h+=card('Orden enviada — sin remito',oe,null,oe>0?'rojo':'verde','pendiente de cargar');
+  h+=card('Orden enviada (días ant.)',oe,null,oe>0?'rojo':'verde','pendiente de remito');
   h+=card('Remitidos (4 semanas)',kpi.nRem4sem,null,'verde',fN(kpi.tnRem4sem,1)+' tn · '+fN(kpi.ltsRem4sem/1000,0)+'k lts');
   h+='</div>';
 
@@ -425,7 +429,7 @@ function renderResumen(frm,cup,kpi){
     var cup=window._cup||[];
     var sinRemito=cup.filter(function(r){return r.estado.includes('ORDEN ENVIADA')&&!r.remito;});
     var conRemito=cup.filter(function(r){return r.estado.includes('ORDEN ENVIADA')&&r.remito;});
-    h+='<div class="nota red" style="margin-bottom:14px">⚠️ <strong>'+oe+' cupo(s) con Orden Enviada pendientes de remito</strong>';
+    h+='<div class="nota red" style="margin-bottom:14px">⚠️ <strong>'+oe+' cupo(s) de días anteriores con Orden Enviada sin remito</strong>';
     if(sinRemito.length) h+=' — <strong>'+sinRemito.length+' sin N° remito</strong>';
     if(conRemito.length) h+=' — <strong>'+conRemito.length+' con remito pero sin cargar en sistema</strong>';
     h+=' → Ver pestaña 📦 Cupos</div>';
